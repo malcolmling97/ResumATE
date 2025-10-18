@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Search, Pencil, FileText, Download, Plus, X, ChevronDown } from 'lucide-react'
+import { Search, Pencil, FileText, Download, Plus, X, ChevronDown, LogOut } from 'lucide-react'
 import TopNavBar from '@/components/TopNavBar'
 import EducationDialog from '@/components/EducationDialog'
 import EducationCard from '@/components/EducationCard'
@@ -27,7 +27,6 @@ import ExperienceDialog from '@/components/ExperienceDialog'
 
 const NewProfilePage = () => {
   const { user } = useAuthStore()
-  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('profile')
   const [workExperiences, setWorkExperiences] = useState([])
   const [projects, setProjects] = useState([])
@@ -52,6 +51,9 @@ const NewProfilePage = () => {
   const [experienceModalOpen, setExperienceModalOpen] = useState(false)
   const [editingExperience, setEditingExperience] = useState(null)
   const [experienceItemType, setExperienceItemType] = useState('experience') // 'experience' or 'project'
+
+  const logout = useAuthStore(state => state.logout);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadAllData()
@@ -98,6 +100,11 @@ const NewProfilePage = () => {
       minute: '2-digit',
       hour12: true
     }) + ' GMT+8'
+  }
+
+  const handleSignOut = async () => {
+      await logout();
+      navigate('/sign-in');
   }
 
   // Experience handlers
@@ -376,9 +383,9 @@ const NewProfilePage = () => {
       {/* Top Navigation Bar */}
       <TopNavBar />
       
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex overflow-hidden justify-center">
         {/* Sidebar */}
-        <aside className="w-80 bg-white border-none m-8 mr-0 p-6 flex flex-col gap-6 glass-container rounded-2xl">
+        <div className="w-80 bg-white border-none m-8 mr-0 p-6 flex flex-col gap-6 glass-container rounded-2xl">
         {/* Profile Card */}
         <Card className="p-6 text-center shadow-sm gap-0">
           <div className="flex justify-center mb-4">
@@ -410,42 +417,11 @@ const NewProfilePage = () => {
           New Resume
         </Button>
 
-        {/* Search Resumes */}
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search Resumes"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {/* Past Resumes */}
-        <div className="flex-1 overflow-y-auto">
-          <h4 className="text-sm font-semibold text-gray-500 mb-3">Past Resumes</h4>
-          <div className="space-y-2">
-            {filteredResumes.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">No past resumes</p>
-            ) : (
-              filteredResumes.map((resume) => (
-                <div
-                  key={resume.id}
-                  onClick={() => navigate('/generate-resume')}
-                  className="p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-gray-100"
-                >
-                  <p className="font-medium text-sm text-gray-900">
-                    {resume.company_name}, {resume.job_title}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </aside>
+        <Button onClick={handleSignOut} className="w-full justify-start gap-2 bg-white hover:bg-gray-50 text-gray-900 border border-gray-200">
+          <LogOut className="w-4 h-4" />
+          Sign out
+        </Button>
+      </div>
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto"> 

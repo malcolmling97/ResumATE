@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { resumeApi, curatedResumesApi } from "../services/api"
+import { sampleGeneratedResume } from "../sample-generated-resume"
 
 /**
  * Custom hook to manage resume state and operations
@@ -135,6 +136,30 @@ export const useResumes = (initialResumeId = null) => {
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  /**
+   * Load sample resume data without calling the API
+   * Useful for UI development and testing
+   */
+  const loadSampleResume = () => {
+    setIsGenerating(true)
+    setError(null)
+    
+    // Simulate a slight delay to mimic API behavior
+    setTimeout(() => {
+      const newResume = {
+        ...sampleGeneratedResume,
+        id: `temp-${Date.now()}`, // Generate new temp ID
+        isUnsaved: true,
+        fullyLoaded: true
+      }
+
+      // Add to resumes list
+      setResumes(prev => [newResume, ...prev])
+      setSelectedResumeId(newResume.id)
+      setIsGenerating(false)
+    }, 500)
   }
 
   const saveResume = async (resumeId) => {
@@ -394,6 +419,7 @@ export const useResumes = (initialResumeId = null) => {
     selectResume,
     createNewResume,
     generateResume,
+    loadSampleResume,
     saveResume,
     deleteResume,
     updateJobDescription,

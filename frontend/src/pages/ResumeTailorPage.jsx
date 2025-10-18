@@ -30,6 +30,7 @@ const ResumeTailorContent = () => {
     selectResume,
     createNewResume,
     generateResume,
+    loadSampleResume,
     saveResume,
     deleteResume,
     updateJobDescription,
@@ -160,7 +161,7 @@ const ResumeTailorContent = () => {
             <SidebarMenuItem>
               <SidebarMenuButton onClick={toggleSidebar} tooltip="Toggle Sidebar">
                 <PanelLeft className="h-4 w-4" />
-                <span className=''>Collapse Sidebar</span>
+                <span className='text-muted-foreground text-sm'>Collapse Sidebar</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -196,6 +197,7 @@ const ResumeTailorContent = () => {
           ) : (
             <CreateNewTailoredResumeInset 
               onGenerate={handleGenerate}
+              onLoadSample={loadSampleResume}
               isGenerating={isGenerating}
               error={error}
             />
