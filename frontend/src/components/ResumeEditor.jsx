@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import ExperienceCard from "@/components/ExperienceCard"
 import EducationCard from "@/components/EducationCard"
 import SkillsBadge from "@/components/SkillsBadge"
+import FeedbackVideoButton from "@/components/FeedbackVideoButton"
+import { useAuthStore } from "@/stores/authStore"
 
 const TailoredResumeEditor = ({ 
   resume, 
@@ -25,6 +27,7 @@ const TailoredResumeEditor = ({
 }) => {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const { user } = useAuthStore()
 
   if (!resume) return null
 
@@ -157,6 +160,12 @@ const TailoredResumeEditor = ({
                 Saved!
               </div>
             )}
+            <FeedbackVideoButton 
+              userId={user?.id}
+              jobDescription={resume.jobDescription}
+              variant="outline" 
+              size="sm"
+            />
             <Button 
               variant="default" 
               size="sm"

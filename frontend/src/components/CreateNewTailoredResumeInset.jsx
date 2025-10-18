@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { FileText, Sparkles, Loader2, FlaskConical } from "lucide-react"
+import { FileText, Sparkles, Loader2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 
-const CreateNewTailoredResumeInset = ({ onGenerate, onLoadSample, isGenerating, error }) => {
+const CreateNewTailoredResumeInset = ({ onGenerate, isGenerating, error }) => {
   const [jobDescription, setJobDescription] = useState('')
 
   const handleGenerate = () => {
@@ -77,33 +77,6 @@ const CreateNewTailoredResumeInset = ({ onGenerate, onLoadSample, isGenerating, 
               </>
             )}
           </Button>
-
-          {/* Development/Testing option */}
-          {/* {onLoadSample && (
-            <div className="w-full relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or for testing
-                </span>
-              </div>
-            </div>
-          )}
-
-          {onLoadSample && (
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="flex w-full rounded-md gap-2"
-              onClick={onLoadSample}
-              disabled={isGenerating}
-            >
-              <FlaskConical className="h-4 w-4" />
-              Load Sample Resume (No API Call)
-            </Button>
-          )} */}
         </div>
       </div>
     </div>

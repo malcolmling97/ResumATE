@@ -164,34 +164,28 @@ const updateResumeItem = async (req, res) => {
       is_current
     } = req.body
 
-    if (!item_type || (item_type !== 'experience' && item_type !== 'project')) {
+    // Only validate item_type if it's being provided/changed
+    if (item_type && item_type !== 'experience' && item_type !== 'project') {
       return res.status(400).json({
         status: "fail",
         message: "Item type must be 'experience' or 'project'"
       })
     }
 
-    if (!title) {
-      return res.status(400).json({
-        status: "fail",
-        message: "Title is required"
-      })
-    }
-
-    const itemData = {
-      item_type,
-      title,
-      organization,
-      description,
-      location,
-      employment_type,
-      technologies,
-      github_url,
-      demo_url,
-      start_date,
-      end_date,
-      is_current
-    }
+    // Build update data object - only include fields that are provided
+    const itemData = {}
+    if (item_type !== undefined) itemData.item_type = item_type
+    if (title !== undefined) itemData.title = title
+    if (organization !== undefined) itemData.organization = organization
+    if (description !== undefined) itemData.description = description
+    if (location !== undefined) itemData.location = location
+    if (employment_type !== undefined) itemData.employment_type = employment_type
+    if (technologies !== undefined) itemData.technologies = technologies
+    if (github_url !== undefined) itemData.github_url = github_url
+    if (demo_url !== undefined) itemData.demo_url = demo_url
+    if (start_date !== undefined) itemData.start_date = start_date
+    if (end_date !== undefined) itemData.end_date = end_date
+    if (is_current !== undefined) itemData.is_current = is_current
 
     const resumeItem = await ResumeItemsModel.updateResumeItem(id, userId, itemData)
 

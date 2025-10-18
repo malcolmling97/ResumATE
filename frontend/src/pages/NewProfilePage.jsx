@@ -594,7 +594,6 @@ const NewProfilePage = () => {
                     <ExperienceCard 
                       key={exp.id} 
                       item={exp}
-                      mode="inline"
                       onUpdate={(field, value) => handleUpdateExperienceField(exp.id, field, value)}
                       onUpdateBulletPoint={handleUpdateBulletPoint}
                       onAddBulletPoint={(content) => handleAddBulletPoint(exp.id, content)}
@@ -615,7 +614,6 @@ const NewProfilePage = () => {
                     <ExperienceCard 
                       key={project.id} 
                       item={project}
-                      mode="inline"
                       onUpdate={(field, value) => handleUpdateExperienceField(project.id, field, value)}
                       onUpdateBulletPoint={handleUpdateBulletPoint}
                       onAddBulletPoint={(content) => handleAddBulletPoint(project.id, content)}

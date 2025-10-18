@@ -30,7 +30,6 @@ const ResumeTailorContent = () => {
     selectResume,
     createNewResume,
     generateResume,
-    loadSampleResume,
     saveResume,
     deleteResume,
     updateJobDescription,
@@ -197,7 +196,6 @@ const ResumeTailorContent = () => {
           ) : (
             <CreateNewTailoredResumeInset 
               onGenerate={handleGenerate}
-              onLoadSample={false}
               isGenerating={isGenerating}
               error={error}
             />

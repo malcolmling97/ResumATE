@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resumeApi, curatedResumesApi } from '../services/api'
 import TopNavBar from '@/components/TopNavBar'
+import FeedbackVideoButton from '@/components/FeedbackVideoButton'
+import { useAuthStore } from '@/stores/authStore'
 
 const GenerateResumePage = () => {
+    const { user } = useAuthStore()
     const navigate = useNavigate()
     const [jobDescription, setJobDescription] = useState('')
     const [isGenerating, setIsGenerating] = useState(false)
@@ -311,7 +314,15 @@ const GenerateResumePage = () => {
                                 }}>
                                     Generated Resume
                                 </h2>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    {savedResumeId && (
+                                        <FeedbackVideoButton 
+                                            userId={user?.id}
+                                            jobDescription={jobDescription}
+                                            variant="outline"
+                                            size="sm"
+                                        />
+                                    )}
                                     <button
                                         onClick={handleSaveResume}
                                         disabled={isSaving}
@@ -792,7 +803,7 @@ const GenerateResumePage = () => {
                                                         {editingSection === `edu-degree-${idx}` ? (
                                                             <input
                                                                 type="text"
-                                                                value={edu.degree}
+                                                                value={edu.degree || ''}
                                                                 onChange={(e) => handleEditEducation(idx, 'degree', e.target.value)}
                                                                 onBlur={() => setEditingSection(null)}
                                                                 onKeyPress={(e) => e.key === 'Enter' && setEditingSection(null)}
@@ -813,14 +824,14 @@ const GenerateResumePage = () => {
                                                                 onClick={() => setEditingSection(`edu-degree-${idx}`)}
                                                                 title="Click to edit"
                                                             >
-                                                                {edu.degree} ✏️
+                                                                {edu.degree || 'No degree specified'} ✏️
                                                             </strong>
                                                         )}
                                                         
                                                         {editingSection === `edu-institution-${idx}` ? (
                                                             <input
                                                                 type="text"
-                                                                value={edu.institution}
+                                                                value={edu.institution || ''}
                                                                 onChange={(e) => handleEditEducation(idx, 'institution', e.target.value)}
                                                                 onBlur={() => setEditingSection(null)}
                                                                 onKeyPress={(e) => e.key === 'Enter' && setEditingSection(null)}
@@ -840,35 +851,37 @@ const GenerateResumePage = () => {
                                                                 onClick={() => setEditingSection(`edu-institution-${idx}`)}
                                                                 title="Click to edit"
                                                             >
-                                                                {edu.institution} ✏️
+                                                                {edu.institution || 'No institution specified'} ✏️
                                                             </div>
                                                         )}
                                                     </div>
                                                     
-                                                    {editingSection === `edu-year-${idx}` ? (
-                                                        <input
-                                                            type="text"
-                                                            value={edu.year}
-                                                            onChange={(e) => handleEditEducation(idx, 'year', e.target.value)}
-                                                            onBlur={() => setEditingSection(null)}
-                                                            onKeyPress={(e) => e.key === 'Enter' && setEditingSection(null)}
-                                                            autoFocus
-                                                            style={{
-                                                                fontSize: '0.85rem',
-                                                                border: '1px solid #4CAF50',
-                                                                padding: '0.25rem',
-                                                                borderRadius: '2px',
-                                                                width: '80px'
-                                                            }}
-                                                        />
-                                                    ) : (
-                                                        <span 
-                                                            style={{ fontSize: '0.85rem', color: '#666', cursor: 'pointer' }}
-                                                            onClick={() => setEditingSection(`edu-year-${idx}`)}
-                                                            title="Click to edit"
-                                                        >
-                                                            {edu.year} ✏️
-                                                        </span>
+                                                    {(edu.year || edu.graduationDate) && (
+                                                        editingSection === `edu-year-${idx}` ? (
+                                                            <input
+                                                                type="text"
+                                                                value={edu.year || edu.graduationDate || ''}
+                                                                onChange={(e) => handleEditEducation(idx, 'year', e.target.value)}
+                                                                onBlur={() => setEditingSection(null)}
+                                                                onKeyPress={(e) => e.key === 'Enter' && setEditingSection(null)}
+                                                                autoFocus
+                                                                style={{
+                                                                    fontSize: '0.85rem',
+                                                                    border: '1px solid #4CAF50',
+                                                                    padding: '0.25rem',
+                                                                    borderRadius: '2px',
+                                                                    width: '80px'
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <span 
+                                                                style={{ fontSize: '0.85rem', color: '#666', cursor: 'pointer' }}
+                                                                onClick={() => setEditingSection(`edu-year-${idx}`)}
+                                                                title="Click to edit"
+                                                            >
+                                                                {edu.year || edu.graduationDate} ✏️
+                                                            </span>
+                                                        )
                                                     )}
                                                 </div>
                                             </div>

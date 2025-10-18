@@ -4,7 +4,19 @@ const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL}/api/v1`;
 const handleResponse = async (response) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    
+    // Handle specific error codes
+    if (response.status === 402) {
+      throw new Error('OpenAI API quota exceeded. Please check your API billing settings.');
+    }
+    if (response.status === 404) {
+      throw new Error(errorData.detail || errorData.message || 'Resource not found');
+    }
+    if (response.status === 500) {
+      throw new Error(errorData.detail || errorData.message || 'Server error occurred while processing your request');
+    }
+    
+    throw new Error(errorData.detail || errorData.message || `HTTP error! status: ${response.status}`);
   }
   return response.json();
 };
@@ -358,5 +370,48 @@ export const curatedResumesApi = {
       credentials: 'include',
     });
     return handleResponse(response);
+  }
+};
+
+// Feedback API - Video feedback based on resume analysis score
+export const feedbackApi = {
+  // Analyze resume and get score (0-100) from backend
+  analyzeResume: async (userId, jobDescription) => {
+    const backendUrl = import.meta.env.VITE_FASTAPI_URL;
+    
+    if (!backendUrl) {
+      throw new Error('FASTAPI_URL is not configured. Please add it to your .env file.');
+    }
+    
+    console.log('Calling API:', `${backendUrl}/api/analyze-resume`);
+    console.log('With data:', { user_id: userId, job_description: jobDescription });
+    
+    const response = await fetch(`${backendUrl}/api/analyze-resume`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        job_description: jobDescription
+      })
+    });
+    
+    console.log('API Response:', response);
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Backend endpoint not available. The /api/analyze-resume endpoint must return JSON.');
+    }
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.message || `HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('API Data:', data);
+    return data;
   }
 };
