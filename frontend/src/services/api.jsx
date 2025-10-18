@@ -280,8 +280,17 @@ export const resumeItemsApi = {
   }
 };
 
-// Resume Generation API
+// Resume API
 export const resumeApi = {
+  // Get user's master resume
+  getMasterResume: async () => {
+    const response = await fetch(`${API_BASE_URL}/resume`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  },
+
   // Generate a tailored resume from job description
   generateResume: async (data) => {
     const response = await fetch(`${API_BASE_URL}/resume/generate`, {
@@ -291,6 +300,62 @@ export const resumeApi = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  }
+};
+
+// Curated Resumes API
+export const curatedResumesApi = {
+  // Get all curated resumes for the current user
+  getUserCuratedResumes: async () => {
+    const response = await fetch(`${API_BASE_URL}/curated-resumes`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  },
+
+  // Get a single curated resume
+  getCuratedResumeById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/curated-resumes/${id}`, {
+      method: 'GET',
+      credentials: 'include',
+    });
+    return handleResponse(response);
+  },
+
+  // Save a new curated resume
+  createCuratedResume: async (resumeData) => {
+    const response = await fetch(`${API_BASE_URL}/curated-resumes`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(resumeData),
+    });
+    return handleResponse(response);
+  },
+
+  // Update curated resume status
+  updateCuratedResumeStatus: async (id, status) => {
+    const response = await fetch(`${API_BASE_URL}/curated-resumes/${id}/status`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+    return handleResponse(response);
+  },
+
+  // Delete a curated resume
+  deleteCuratedResume: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/curated-resumes/${id}`, {
+      method: 'DELETE',
+      credentials: 'include',
     });
     return handleResponse(response);
   }
