@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import LogOutButton from '../components/LogOutButton'
 import DeleteUserButton from '../components/DeleteUserButton'
 import EducationSection from '../components/EducationSection'
@@ -8,6 +9,7 @@ import { authApi } from '../services/api'
 
 const ProfilePage = () => {
     const { user, updateUserInStore } = useAuthStore()
+    const navigate = useNavigate()
     const [isEditing, setIsEditing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState(null)
@@ -102,23 +104,57 @@ const ProfilePage = () => {
                 marginBottom: '2rem'
             }}>
                 <h1 style={{ margin: 0, color: '#333' }}>Profile</h1>
-                {!isEditing && (
-                    <button
-                        onClick={handleEditClick}
-                        style={{
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#4CAF50',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '1rem',
-                            fontWeight: '500'
-                        }}
-                    >
-                        Edit Profile
-                    </button>
-                )}
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {!isEditing && (
+                        <>
+                            <button
+                                onClick={() => navigate('/master-resume')}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    backgroundColor: '#2196F3',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                📝 Master Resume
+                            </button>
+                            <button
+                                onClick={() => navigate('/generate-resume')}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    backgroundColor: '#9C27B0',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                ✨ Generate Resume
+                            </button>
+                            <button
+                                onClick={handleEditClick}
+                                style={{
+                                    padding: '0.5rem 1rem',
+                                    backgroundColor: '#4CAF50',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                Edit Profile
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
             
             {error && (
