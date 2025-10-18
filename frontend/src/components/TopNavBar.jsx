@@ -1,7 +1,7 @@
 import React from 'react'
 import { useSidebar, SidebarTrigger } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
-import { User } from 'lucide-react'
+import { User, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const TopNavBar = () => {
@@ -14,7 +14,11 @@ const TopNavBar = () => {
           <h1 className="text-lg font-semibold">Resumate</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/profile')} className="h-8 w-8">
+          <Button variant="ghost" onClick={() => navigate('/generate-resume')}>
+            <FileText className="h-4 w-4" />
+            Tailor Resume
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/new-profile')} className="h-8 w-8">
             <User className="h-4 w-4" />
           </Button>
         </div>

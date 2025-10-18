@@ -1,7 +1,23 @@
-const SkillsBadge = ({ skill, onEdit, onDelete, getLevelColor }) => {
+const SkillsBadge = ({ skill, onEdit, onDelete }) => {
   const handleDelete = (e) => {
     e.stopPropagation() // Prevent edit action when clicking delete
     onDelete(skill.id)
+  }
+
+  // Tailwind-based helper: get a color ring class depending on level
+  function getLevelColor(level) {
+    switch (level) {
+      case 'beginner':
+        return 'bg-blue-300 text-white';
+      case 'intermediate':
+        return 'bg-green-400 text-white';
+      case 'advanced':
+        return 'bg-orange-300 text-white';
+      case 'expert':
+        return 'bg-red-400 text-white';
+      default:
+        return 'bg-gray-300 text-white';
+    }
   }
 
   return (

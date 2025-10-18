@@ -7,6 +7,7 @@ import NewProfilePage from './pages/NewProfilePage.jsx'
 import MasterResumePage from './pages/MasterResumePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import ResumeTailorPage from './pages/ResumeTailorPage'
+import GenerateResumePage from './pages/GenerateResumePage'
 
 function App() {
   return (

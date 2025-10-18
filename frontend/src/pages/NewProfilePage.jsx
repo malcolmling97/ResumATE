@@ -8,11 +8,22 @@ import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Search, Pencil, Copy, FileText, Download, Plus, X } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Search, Pencil, FileText, Download, Plus, X, ChevronDown } from 'lucide-react'
 import TopNavBar from '@/components/TopNavBar'
 import EducationDialog from '@/components/EducationDialog'
+import EducationCard from '@/components/EducationCard'
 import SkillDialog from '@/components/SkillDialog'
 import SkillsBadge from '@/components/SkillsBadge'
+import ExperienceCard from '@/components/ExperienceCard'
+import ExperienceDialog from '@/components/ExperienceDialog'
 
 const NewProfilePage = () => {
   const { user } = useAuthStore()
@@ -20,7 +31,6 @@ const NewProfilePage = () => {
   const [activeTab, setActiveTab] = useState('profile')
   const [workExperiences, setWorkExperiences] = useState([])
   const [projects, setProjects] = useState([])
-  const [achievements, setAchievements] = useState([])
   const [education, setEducation] = useState([])
   const [skills, setSkills] = useState([])
   const [curatedResumes, setCuratedResumes] = useState([])
@@ -38,6 +48,11 @@ const NewProfilePage = () => {
   const [skillModalOpen, setSkillModalOpen] = useState(false)
   const [editingSkill, setEditingSkill] = useState(null)
 
+  // Modal states for Experience (work, projects)
+  const [experienceModalOpen, setExperienceModalOpen] = useState(false)
+  const [editingExperience, setEditingExperience] = useState(null)
+  const [experienceItemType, setExperienceItemType] = useState('experience') // 'experience' or 'project'
+
   useEffect(() => {
     loadAllData()
   }, [])
@@ -53,10 +68,6 @@ const NewProfilePage = () => {
       // Load projects
       const projectResponse = await resumeItemsApi.getUserResumeItems('project')
       setProjects(projectResponse.data?.resume_items || [])
-      
-      // Load achievements
-      const achievementResponse = await resumeItemsApi.getUserResumeItems('achievement')
-      setAchievements(achievementResponse.data?.resume_items || [])
       
       // Load education
       const eduResponse = await educationApi.getUserEducation()
@@ -89,9 +100,170 @@ const NewProfilePage = () => {
     }) + ' GMT+8'
   }
 
-  const handleEditExperience = (item) => {
-    // Navigate to master resume page or open edit modal
-    navigate('/master-resume')
+  // Experience handlers
+  const handleAddExperience = (type) => {
+    setExperienceItemType(type)
+    setEditingExperience(null)
+    setExperienceModalOpen(true)
+  }
+
+  const handleEditExperience = (item, type) => {
+    setExperienceItemType(type)
+    setEditingExperience(item)
+    setExperienceModalOpen(true)
+  }
+
+  const handleSaveExperience = async (formData) => {
+    try {
+      setError(null)
+      
+      // Extract bullet points from formData
+      const { bulletPoints, ...restFormData } = formData
+      
+      // Prepare data based on item type
+      let dataToSend = {
+        item_type: experienceItemType,
+        title: restFormData.title,
+        description: restFormData.description,
+        start_date: restFormData.start_date,
+        end_date: restFormData.end_date,
+        is_current: restFormData.is_current
+      }
+
+      // Add type-specific fields
+      if (experienceItemType === 'experience') {
+        dataToSend = {
+          ...dataToSend,
+          organization: restFormData.organization,
+          location: restFormData.location,
+          employment_type: restFormData.employment_type
+        }
+      } else if (experienceItemType === 'project') {
+        const technologiesArray = restFormData.technologies 
+          ? restFormData.technologies.split(',').map(t => t.trim()).filter(t => t)
+          : null
+        dataToSend = {
+          ...dataToSend,
+          technologies: technologiesArray,
+          github_url: restFormData.github_url,
+          demo_url: restFormData.demo_url
+        }
+      }
+
+      let savedItem
+      if (editingExperience) {
+        savedItem = await resumeItemsApi.updateResumeItem(editingExperience.id, dataToSend)
+        
+        // For editing, we need to handle bullet points separately
+        // First, get existing points and remove any that aren't in the new list
+        const existingPoints = editingExperience.points || []
+        const existingContents = existingPoints.map(p => p.content)
+        
+        // Delete removed points
+        for (const point of existingPoints) {
+          if (!bulletPoints.includes(point.content)) {
+            await resumeItemsApi.deleteResumeItemPoint(point.id)
+          }
+        }
+        
+        // Add new points
+        for (let i = 0; i < bulletPoints.length; i++) {
+          if (!existingContents.includes(bulletPoints[i])) {
+            await resumeItemsApi.createResumeItemPoint({
+              resume_item_id: editingExperience.id,
+              content: bulletPoints[i],
+              display_order: i
+            })
+          }
+        }
+      } else {
+        // Create new resume item
+        savedItem = await resumeItemsApi.createResumeItem(dataToSend)
+        
+        // Add bullet points if any
+        if (bulletPoints && bulletPoints.length > 0) {
+          for (let i = 0; i < bulletPoints.length; i++) {
+            await resumeItemsApi.createResumeItemPoint({
+              resume_item_id: savedItem.data.resume_item.id,
+              content: bulletPoints[i],
+              display_order: i
+            })
+          }
+        }
+      }
+      
+      await loadAllData()
+      setExperienceModalOpen(false)
+    } catch (error) {
+      console.error('Failed to save experience:', error)
+      setError(`Failed to save ${experienceItemType}: ${error.message}`)
+      alert(`Failed to save ${experienceItemType}: ${error.message}`)
+    }
+  }
+
+  const handleDeleteExperience = async (id, type) => {
+    if (!window.confirm(`Are you sure you want to delete this ${type}? All bullet points will also be deleted.`)) {
+      return
+    }
+    try {
+      await resumeItemsApi.deleteResumeItem(id)
+      await loadAllData()
+    } catch (error) {
+      console.error(`Failed to delete ${type}:`, error)
+    }
+  }
+
+  // Inline editing handlers for ExperienceCard
+  const handleUpdateExperienceField = async (itemId, field, value) => {
+    try {
+      const updateData = { [field]: value }
+      await resumeItemsApi.updateResumeItem(itemId, updateData)
+      await loadAllData()
+    } catch (error) {
+      console.error(`Failed to update ${field}:`, error)
+      alert(`Failed to update ${field}: ${error.message}`)
+    }
+  }
+
+  const handleUpdateBulletPoint = async (pointId, content) => {
+    try {
+      await resumeItemsApi.updateResumeItemPoint(pointId, { content })
+      await loadAllData()
+    } catch (error) {
+      console.error('Failed to update bullet point:', error)
+      alert(`Failed to update bullet point: ${error.message}`)
+    }
+  }
+
+  const handleAddBulletPoint = async (itemId, content) => {
+    try {
+      // Get current points to determine the next display_order
+      const item = [...workExperiences, ...projects].find(i => i.id === itemId)
+      const nextOrder = item?.points?.length || 0
+      
+      await resumeItemsApi.createResumeItemPoint({
+        resume_item_id: itemId,
+        content,
+        display_order: nextOrder
+      })
+      await loadAllData()
+    } catch (error) {
+      console.error('Failed to add bullet point:', error)
+      alert(`Failed to add bullet point: ${error.message}`)
+    }
+  }
+
+  const handleDeleteBulletPoint = async (pointId) => {
+    if (!window.confirm('Are you sure you want to delete this bullet point?')) {
+      return
+    }
+    try {
+      await resumeItemsApi.deleteResumeItemPoint(pointId)
+      await loadAllData()
+    } catch (error) {
+      console.error('Failed to delete bullet point:', error)
+      alert(`Failed to delete bullet point: ${error.message}`)
+    }
   }
 
   const filteredResumes = curatedResumes.filter(resume =>
@@ -191,16 +363,6 @@ const NewProfilePage = () => {
     return grouped
   }
 
-  const getLevelColor = (level) => {
-    const colors = {
-      beginner: 'bg-blue-200 text-blue-800',
-      intermediate: 'bg-green-200 text-green-800',
-      advanced: 'bg-orange-200 text-orange-800',
-      expert: 'bg-red-200 text-red-800'
-    }
-    return colors[level] || 'bg-gray-200 text-gray-800'
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -210,7 +372,7 @@ const NewProfilePage = () => {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white via-sky-50 to-sky-100">
+    <div className="flex flex-col min-h-screen bg-sky-background">
       {/* Top Navigation Bar */}
       <TopNavBar />
       
@@ -338,24 +500,10 @@ const NewProfilePage = () => {
                 </Card>
               ) : (
                 education.map((edu) => (
-                  <Card
+                  <EducationCard
                     key={edu.id}
-                    className="p-6 bg-white rounded-xl shadow border border-gray-100 backdrop-blur-sm"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {edu.title} {edu.description && (`@ ${edu.description}`)}
-                          </h3>
-                          <Badge variant="outline">Grade: {edu.grade}</Badge>
-                        </div>
-                        {(edu.start_date || edu.end_date) && (
-                          <p className="text-sm text-gray-600 mt-2">
-                            {formatDate(edu.start_date)} - {formatDate(edu.end_date)}
-                          </p>
-                        )}
-                      </div>
+                    education={edu}
+                    actions={
                       <div className="flex gap-2">
                         <Button 
                           variant="outline" 
@@ -372,8 +520,8 @@ const NewProfilePage = () => {
                           <X className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
-                  </Card>
+                    }
+                  />
                 ))
               )}
             </div>
@@ -382,21 +530,40 @@ const NewProfilePage = () => {
           {/* Master Experience Bank */}
           <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Master Experience Bank</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Experience Bank</h2>
               <div className="flex gap-3">
-                <Button variant="default" onClick={() => navigate('/master-resume')}>
-                  <Plus className="w-4 h-4" />
-                  Add Experience
-                </Button>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="default">
+                      <Plus className="w-4 h-4" />
+                      Add Experience
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => handleAddExperience('experience')}>
+                      Add Work Experience
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => handleAddExperience('project')}>
+                      Add Project
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <ExperienceDialog
+                  open={experienceModalOpen}
+                  onOpenChange={setExperienceModalOpen}
+                  item={editingExperience}
+                  onSave={handleSaveExperience}
+                  itemType={experienceItemType}
+                />
               </div>
             </div>
 
             <div className="glass-container rounded-2xl p-4">     
             <Tabs value={experienceTabValue} onValueChange={setExperienceTabValue} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-transparent shadow-sm rounded-lg">
+              <TabsList className="grid w-full grid-cols-2 bg-transparent shadow-sm rounded-lg">
                 <TabsTrigger value="work">Work Experience</TabsTrigger>
                 <TabsTrigger value="projects">Projects</TabsTrigger>
-                <TabsTrigger value="achievements">Achievements</TabsTrigger>
               </TabsList>
 
               <TabsContent value="work" className="space-y-4 rounded-2xl">
@@ -406,41 +573,16 @@ const NewProfilePage = () => {
                   </Card>
                 ) : (
                   workExperiences.map((exp) => (
-                    <Card key={exp.id} className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {exp.title}, {exp.organization}
-                            </h3>
-                            <Copy className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">
-                            ({formatDate(exp.start_date)} - {exp.is_current ? 'Present' : formatDate(exp.end_date)})
-                          </p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditExperience(exp)}
-                        >
-                          Edit
-                        </Button>
-                      </div>
-
-                      {/* Bullet Points */}
-                      <ul className="space-y-2 ml-4">
-                        {exp.points && exp.points.length > 0 ? (
-                          exp.points.map((point) => (
-                            <li key={point.id} className="text-sm text-gray-700 list-disc">
-                              {point.content}
-                            </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-gray-400 italic">No bullet points added</li>
-                        )}
-                      </ul>
-                    </Card>
+                    <ExperienceCard 
+                      key={exp.id} 
+                      item={exp}
+                      mode="inline"
+                      onUpdate={(field, value) => handleUpdateExperienceField(exp.id, field, value)}
+                      onUpdateBulletPoint={handleUpdateBulletPoint}
+                      onAddBulletPoint={(content) => handleAddBulletPoint(exp.id, content)}
+                      onDeleteBulletPoint={handleDeleteBulletPoint}
+                      onDelete={() => handleDeleteExperience(exp.id, 'experience')}
+                    />
                   ))
                 )}
               </TabsContent>
@@ -452,87 +594,16 @@ const NewProfilePage = () => {
                   </Card>
                 ) : (
                   projects.map((project) => (
-                    <Card key={project.id} className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {project.title}, {project.organization}
-                            </h3>
-                            <Copy className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">
-                            ({formatDate(project.start_date)} - {project.is_current ? 'Present' : formatDate(project.end_date)})
-                          </p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditExperience(project)}
-                        >
-                          Edit
-                        </Button>
-                      </div>
-
-                      {/* Bullet Points */}
-                      <ul className="space-y-2 ml-4">
-                        {project.points && project.points.length > 0 ? (
-                          project.points.map((point) => (
-                            <li key={point.id} className="text-sm text-gray-700 list-disc">
-                              {point.content}
-                            </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-gray-400 italic">No bullet points added</li>
-                        )}
-                      </ul>
-                    </Card>
-                  ))
-                )}
-              </TabsContent>
-
-              <TabsContent value="achievements" className="space-y-4 rounded-2xl">
-                {achievements.length === 0 ? (
-                  <Card className="p-6 bg-white rounded-xl shadow border border-gray-100 backdrop-blur-sm text-center">
-                    <p className="text-gray-500">No achievements added yet</p>
-                  </Card>
-                ) : (
-                  achievements.map((achievement) => (
-                    <Card key={achievement.id} className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {achievement.title}, {achievement.organization}
-                            </h3>
-                            <Copy className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">
-                            ({formatDate(achievement.start_date)} - {achievement.is_current ? 'Present' : formatDate(achievement.end_date)})
-                          </p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditExperience(achievement)}
-                        >
-                          Edit
-                        </Button>
-                      </div>
-
-                      {/* Bullet Points */}
-                      <ul className="space-y-2 ml-4">
-                        {achievement.points && achievement.points.length > 0 ? (
-                          achievement.points.map((point) => (
-                            <li key={point.id} className="text-sm text-gray-700 list-disc">
-                              {point.content}
-                            </li>
-                          ))
-                        ) : (
-                          <li className="text-sm text-gray-400 italic">No bullet points added</li>
-                        )}
-                      </ul>
-                    </Card>
+                    <ExperienceCard 
+                      key={project.id} 
+                      item={project}
+                      mode="inline"
+                      onUpdate={(field, value) => handleUpdateExperienceField(project.id, field, value)}
+                      onUpdateBulletPoint={handleUpdateBulletPoint}
+                      onAddBulletPoint={(content) => handleAddBulletPoint(project.id, content)}
+                      onDeleteBulletPoint={handleDeleteBulletPoint}
+                      onDelete={() => handleDeleteExperience(project.id, 'project')}
+                    />
                   ))
                 )}
               </TabsContent>
@@ -578,7 +649,6 @@ const NewProfilePage = () => {
                               skill={skill}
                               onEdit={handleEditSkill}
                               onDelete={handleDeleteSkill}
-                              getLevelColor={getLevelColor}
                             />
                           ))}
                         </div>
