@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { resumeApi } from '../services/api'
+import { resumeApi, curatedResumesApi } from '../services/api'
 
 const GenerateResumePage = () => {
     const navigate = useNavigate()
@@ -9,6 +9,9 @@ const GenerateResumePage = () => {
     const [generatedResume, setGeneratedResume] = useState(null)
     const [error, setError] = useState(null)
     const [editingSection, setEditingSection] = useState(null) // 'skill-X', 'exp-X', 'proj-X', etc.
+    const [isSaving, setIsSaving] = useState(false)
+    const [saveSuccess, setSaveSuccess] = useState(false)
+    const [savedResumeId, setSavedResumeId] = useState(null)
 
     const handleGenerate = async () => {
         if (!jobDescription.trim()) {
@@ -34,6 +37,49 @@ const GenerateResumePage = () => {
         setGeneratedResume(null)
         setError(null)
         setEditingSection(null)
+        setSaveSuccess(false)
+        setSavedResumeId(null)
+    }
+
+    const handleSaveResume = async () => {
+        if (!generatedResume) return
+
+        setIsSaving(true)
+        setError(null)
+        setSaveSuccess(false)
+
+        try {
+            console.log('Saving resume...')
+            const resumeData = {
+                title: `Resume for ${jobDescription.substring(0, 50)}...`,
+                jobDescription: jobDescription,
+                jobTitle: 'Job Title', // Can be extracted from job description
+                jobCompany: 'Company', // Can be extracted from job description
+                generationPrompt: jobDescription,
+                modelUsed: 'mock', // Will be replaced with actual model when integrated
+                generationNotes: 'AI-generated and potentially edited by user',
+                contactInfo: generatedResume.contactInfo,
+                skills: generatedResume.skills,
+                experiences: generatedResume.experiences,
+                projects: generatedResume.projects,
+                education: generatedResume.education
+            }
+
+            console.log('Resume data to save:', resumeData)
+            const result = await curatedResumesApi.createCuratedResume(resumeData)
+            console.log('Save result:', result)
+            
+            setSavedResumeId(result.data.id)
+            setSaveSuccess(true)
+
+            // Auto-hide success message after 5 seconds
+            setTimeout(() => setSaveSuccess(false), 5000)
+        } catch (err) {
+            console.error('Save error:', err)
+            setError(err.message || 'Failed to save resume')
+        } finally {
+            setIsSaving(false)
+        }
     }
 
     // Skills editing functions
@@ -262,24 +308,54 @@ const GenerateResumePage = () => {
                                 }}>
                                     Generated Resume
                                 </h2>
-                                <button
-                                    onClick={() => {
-                                        // Placeholder for download functionality
-                                        alert('Download functionality will be implemented when the backend is ready')
-                                    }}
-                                    style={{
-                                        padding: '0.5rem 1rem',
-                                        backgroundColor: '#4CAF50',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        fontSize: '0.9rem'
-                                    }}
-                                >
-                                    📥 Download PDF
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        onClick={handleSaveResume}
+                                        disabled={isSaving}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            backgroundColor: isSaving ? '#ccc' : '#2196F3',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: isSaving ? 'not-allowed' : 'pointer',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        {isSaving ? '💾 Saving...' : '💾 Save Resume'}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            // Placeholder for download functionality
+                                            alert('Download functionality will be implemented when the backend is ready')
+                                        }}
+                                        style={{
+                                            padding: '0.5rem 1rem',
+                                            backgroundColor: '#4CAF50',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem'
+                                        }}
+                                    >
+                                        📥 Download PDF
+                                    </button>
+                                </div>
                             </div>
+
+                            {saveSuccess && (
+                                <div style={{
+                                    padding: '0.75rem',
+                                    backgroundColor: '#d4edda',
+                                    color: '#155724',
+                                    borderRadius: '4px',
+                                    marginBottom: '1rem',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    ✓ Resume saved successfully! ID: {savedResumeId}
+                                </div>
+                            )}
 
                             {/* Resume Content */}
                             <div style={{
@@ -482,11 +558,13 @@ const GenerateResumePage = () => {
                                                 
                                                 {exp.points && exp.points.length > 0 && (
                                                     <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#555', fontSize: '0.9rem' }}>
-                                                        {exp.points.map((point, pIdx) => (
+                                                        {exp.points.map((point, pIdx) => {
+                                                                            const pointContent = typeof point === 'string' ? point : point.content
+                                                                            return (
                                                             <li key={pIdx} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                                                                 {editingSection === `exp-point-${idx}-${pIdx}` ? (
                                                                     <textarea
-                                                                        value={point}
+                                                                        value={pointContent}
                                                                         onChange={(e) => handleEditExperiencePoint(idx, pIdx, e.target.value)}
                                                                         onBlur={() => setEditingSection(null)}
                                                                         autoFocus
@@ -508,7 +586,7 @@ const GenerateResumePage = () => {
                                                                             onClick={() => setEditingSection(`exp-point-${idx}-${pIdx}`)}
                                                                             title="Click to edit"
                                                                         >
-                                                                            {point}
+                                                                            {pointContent}
                                                                         </span>
                                                                         <button
                                                                             onClick={() => handleDeleteExperiencePoint(idx, pIdx)}
@@ -527,7 +605,8 @@ const GenerateResumePage = () => {
                                                                     </>
                                                                 )}
                                                             </li>
-                                                        ))}
+                                                            )
+                                                        })}
                                                     </ul>
                                                 )}
                                             </div>
@@ -610,11 +689,13 @@ const GenerateResumePage = () => {
                                                 
                                                 {project.points && project.points.length > 0 && (
                                                     <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#555', fontSize: '0.9rem' }}>
-                                                        {project.points.map((point, pIdx) => (
+                                                        {project.points.map((point, pIdx) => {
+                                                                            const pointContent = typeof point === 'string' ? point : point.content
+                                                                            return (
                                                             <li key={pIdx} style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                                                                 {editingSection === `proj-point-${idx}-${pIdx}` ? (
                                                                     <textarea
-                                                                        value={point}
+                                                                        value={pointContent}
                                                                         onChange={(e) => handleEditProjectPoint(idx, pIdx, e.target.value)}
                                                                         onBlur={() => setEditingSection(null)}
                                                                         autoFocus
@@ -636,7 +717,7 @@ const GenerateResumePage = () => {
                                                                             onClick={() => setEditingSection(`proj-point-${idx}-${pIdx}`)}
                                                                             title="Click to edit"
                                                                         >
-                                                                            {point}
+                                                                            {pointContent}
                                                                         </span>
                                                                         <button
                                                                             onClick={() => handleDeleteProjectPoint(idx, pIdx)}
@@ -655,7 +736,8 @@ const GenerateResumePage = () => {
                                                                     </>
                                                                 )}
                                                             </li>
-                                                        ))}
+                                                            )
+                                                        })}
                                                     </ul>
                                                 )}
                                             </div>

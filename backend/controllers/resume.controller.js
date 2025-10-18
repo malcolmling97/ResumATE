@@ -1,6 +1,86 @@
-// Mock controller for resume generation
-// This will be replaced with actual AI-powered generation via FastAPI
+import resumeItemsModel from "../models/resumeItems.model.js"
+import resumeItemPointsModel from "../models/resumeItemPoints.model.js"
+import skillsModel from "../models/skills.model.js"
+import educationModel from "../models/education.model.js"
+import AuthModel from "../models/auth.model.js"
 
+// Get user's complete master resume
+export const getMasterResume = async (req, res) => {
+    try {
+        const userId = req.user.id
+
+        // Fetch all master resume data
+        const [user, skills, education, resumeItems] = await Promise.all([
+            AuthModel.getUserById(userId),
+            skillsModel.getUserSkills(userId),
+            educationModel.getUserEducation(userId),
+            resumeItemsModel.getUserResumeItems(userId)
+        ])
+
+        // Fetch bullet points for each resume item
+        const itemsWithPoints = await Promise.all(
+            resumeItems.map(async (item) => {
+                const points = await resumeItemPointsModel.getResumeItemPoints(item.id, userId)
+                return {
+                    ...item,
+                    points: points.map(p => ({
+                        id: p.id,
+                        content: p.content,
+                        display_order: p.display_order,
+                        usage_count: p.usage_count
+                    }))
+                }
+            })
+        )
+
+        // Organize by type
+        const experiences = itemsWithPoints.filter(item => item.item_type === 'experience')
+        const projects = itemsWithPoints.filter(item => item.item_type === 'project')
+
+        const masterResume = {
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                location: user.location,
+                about: user.about
+            },
+            skills: skills.map(s => ({
+                id: s.id,
+                category: s.category,
+                skills: s.skills
+            })),
+            education: education.map(e => ({
+                id: e.id,
+                institution: e.institution,
+                degree: e.degree,
+                field_of_study: e.field_of_study,
+                start_date: e.start_date,
+                end_date: e.end_date,
+                grade: e.grade,
+                activities: e.activities,
+                description: e.description
+            })),
+            experiences,
+            projects
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: masterResume
+        })
+    } catch (error) {
+        console.error('Error fetching master resume:', error)
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch master resume',
+            error: error.message
+        })
+    }
+}
+
+// Generate a tailored resume from job description (mock for now)
 export const generateResume = async (req, res) => {
     try {
         const { jobDescription } = req.body
@@ -13,76 +93,56 @@ export const generateResume = async (req, res) => {
             })
         }
 
-        // Mock response - simulating AI-generated resume
-        // In production, this will call your FastAPI service
+        // TODO: This will call your FastAPI service
+        // For now, fetch the user's master resume and return it with mock selections
+        
+        const [user, skills, resumeItems] = await Promise.all([
+            AuthModel.getUserById(userId),
+            skillsModel.getUserSkills(userId),
+            resumeItemsModel.getUserResumeItems(userId)
+        ])
+
+        // Fetch points for resume items
+        const itemsWithPoints = await Promise.all(
+            resumeItems.map(async (item) => {
+                const points = await resumeItemPointsModel.getResumeItemPoints(item.id, userId)
+                return { ...item, points }
+            })
+        )
+
+        const experiences = itemsWithPoints.filter(item => item.item_type === 'experience')
+        const projects = itemsWithPoints.filter(item => item.item_type === 'project')
+
+        // Mock AI response - return user's actual data with IDs
         const mockResume = {
             contactInfo: {
-                name: req.user.name || "John Doe",
-                email: req.user.email,
-                phone: "(555) 123-4567"
+                name: user.name || "John Doe",
+                email: user.email,
+                phone: user.phone || "(555) 123-4567"
             },
-            skills: [
-                "JavaScript",
-                "React",
-                "Node.js",
-                "Python",
-                "SQL",
-                "REST APIs",
-                "Git",
-                "Agile Development"
-            ],
-            experiences: [
-                {
-                    title: "Senior Software Engineer",
-                    company: "Tech Company Inc.",
-                    startDate: "Jan 2021",
-                    endDate: "Present",
-                    points: [
-                        "Led development of customer-facing web applications using React and Node.js, serving 100K+ users",
-                        "Implemented RESTful APIs and microservices architecture, improving system scalability by 40%",
-                        "Mentored 3 junior developers and conducted code reviews to maintain high code quality standards",
-                        "Collaborated with cross-functional teams to deliver features aligned with business requirements"
-                    ]
-                },
-                {
-                    title: "Software Engineer",
-                    company: "StartUp Solutions",
-                    startDate: "Jun 2019",
-                    endDate: "Dec 2020",
-                    points: [
-                        "Built and maintained full-stack web applications using modern JavaScript frameworks",
-                        "Optimized database queries resulting in 30% faster page load times",
-                        "Participated in Agile ceremonies and contributed to sprint planning and retrospectives"
-                    ]
-                }
-            ],
-            projects: [
-                {
-                    title: "E-Commerce Platform",
-                    date: "2023",
-                    points: [
-                        "Developed a full-stack e-commerce platform with React, Node.js, and PostgreSQL",
-                        "Integrated payment processing with Stripe API and implemented user authentication",
-                        "Deployed on AWS with CI/CD pipeline using GitHub Actions"
-                    ]
-                },
-                {
-                    title: "Task Management App",
-                    date: "2022",
-                    points: [
-                        "Created a real-time task management application with React and Firebase",
-                        "Implemented drag-and-drop functionality and collaborative features",
-                        "Achieved 95% test coverage using Jest and React Testing Library"
-                    ]
-                }
-            ],
-            education: [
-                {
-                    degree: "Bachelor of Science in Computer Science",
-                    institution: "University of Technology",
-                    year: "2019"
-                }
-            ]
+            skills: skills.flatMap(s => s.skills || []).slice(0, 8), // Take first 8 skills
+            experiences: experiences.slice(0, 2).map(exp => ({
+                id: exp.id, // ← Include ID for reference
+                title: exp.title,
+                company: exp.organization,
+                startDate: exp.start_date || 'Start Date',
+                endDate: exp.is_current ? 'Present' : (exp.end_date || 'End Date'),
+                is_current: exp.is_current,
+                points: exp.points.slice(0, 4).map(p => ({
+                    id: p.id, // ← Include original point ID
+                    content: p.content
+                }))
+            })),
+            projects: projects.slice(0, 2).map(proj => ({
+                id: proj.id, // ← Include ID for reference
+                title: proj.title,
+                date: proj.start_date || '2023',
+                points: proj.points.slice(0, 3).map(p => ({
+                    id: p.id, // ← Include original point ID
+                    content: p.content
+                }))
+            })),
+            education: [] // Can add education if needed
         }
 
         // Simulate API delay
@@ -100,3 +160,7 @@ export const generateResume = async (req, res) => {
     }
 }
 
+export default {
+    getMasterResume,
+    generateResume
+}

@@ -10,6 +10,7 @@ import educationRoutes from "./routes/education.route.js"
 import skillsRoutes from "./routes/skills.route.js"
 import resumeItemsRoutes from "./routes/resumeItems.route.js"
 import resumeRoutes from "./routes/resume.route.js"
+import curatedResumesRoutes from "./routes/curatedResumes.route.js"
 
 const app = express()
 
@@ -39,6 +40,7 @@ app.use("/api/v1/education", educationRoutes)
 app.use("/api/v1/skills", skillsRoutes)
 app.use("/api/v1/resume-items", resumeItemsRoutes)
 app.use("/api/v1/resume", resumeRoutes)
+app.use("/api/v1/curated-resumes", curatedResumesRoutes)
 
 
 try {

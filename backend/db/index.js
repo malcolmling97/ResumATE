@@ -7,4 +7,7 @@ const pool = new Pool({
 
 const query = (text, params) => pool.query(text, params)
 
+// Also export pool for transactions
+query.pool = pool
+
 export default query
