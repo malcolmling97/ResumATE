@@ -30,6 +30,11 @@ function App() {
             <ResumeTailorPage />
           </ProtectedRoute>
         } />
+        <Route path='/generate-resume-old' element={
+          <ProtectedRoute>
+            <GenerateResumePage />
+          </ProtectedRoute>
+        } />
       </Routes>
     </BrowserRouter>
   )

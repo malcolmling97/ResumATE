@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { PanelLeft } from "lucide-react"
 import NavActions from "@/components/NavActions"
 import NavResumeItems from "@/components/NavResumeItems"
@@ -23,16 +24,96 @@ const ResumeTailorContent = () => {
     resumes,
     selectedResume,
     selectedResumeId,
+    isGenerating,
+    isLoadingResume,
+    error,
     selectResume,
     createNewResume,
+    generateResume,
+    saveResume,
+    deleteResume,
     updateJobDescription,
     updateResumeItem,
+    updateExperience,
+    deleteExperience,
+    updateProject,
+    deleteProject,
+    updateEducation,
+    deleteEducation,
+    updateSkill,
+    deleteSkill,
     regenerateItem,
+    loadCuratedResumes,
+    setError,
   } = useResumes(null) // Start with no resume selected
+
+  // Load curated resumes on mount
+  useEffect(() => {
+    loadCuratedResumes()
+  }, [])
+
+  const handleGenerate = async (jobDescription) => {
+    await generateResume(jobDescription)
+  }
 
   const handleItemSave = (itemId, editedBullets) => {
     if (selectedResumeId) {
       updateResumeItem(selectedResumeId, itemId, editedBullets)
+    }
+  }
+
+  const handleSaveResume = async () => {
+    if (selectedResumeId) {
+      const result = await saveResume(selectedResumeId)
+      return result
+    }
+  }
+
+  const handleUpdateExperience = (index, field, value) => {
+    if (selectedResumeId) {
+      updateExperience(selectedResumeId, index, field, value)
+    }
+  }
+
+  const handleDeleteExperience = (index) => {
+    if (selectedResumeId) {
+      deleteExperience(selectedResumeId, index)
+    }
+  }
+
+  const handleUpdateProject = (index, field, value) => {
+    if (selectedResumeId) {
+      updateProject(selectedResumeId, index, field, value)
+    }
+  }
+
+  const handleDeleteProject = (index) => {
+    if (selectedResumeId) {
+      deleteProject(selectedResumeId, index)
+    }
+  }
+
+  const handleUpdateEducation = (index, field, value) => {
+    if (selectedResumeId) {
+      updateEducation(selectedResumeId, index, field, value)
+    }
+  }
+
+  const handleDeleteEducation = (index) => {
+    if (selectedResumeId) {
+      deleteEducation(selectedResumeId, index)
+    }
+  }
+
+  const handleUpdateSkill = (index, value) => {
+    if (selectedResumeId) {
+      updateSkill(selectedResumeId, index, value)
+    }
+  }
+
+  const handleDeleteSkill = (index) => {
+    if (selectedResumeId) {
+      deleteSkill(selectedResumeId, index)
     }
   }
 
@@ -67,6 +148,7 @@ const ResumeTailorContent = () => {
             resumes={resumes}
             selectedResumeId={selectedResumeId}
             onSelectResume={selectResume}
+            onDeleteResume={deleteResume}
           />
         </SidebarContent>
         
@@ -87,15 +169,36 @@ const ResumeTailorContent = () => {
 
       <SidebarInset>
         <main className="flex-1 overflow-y-auto">
-          {selectedResume ? (
+          {isLoadingResume ? (
+            <div className="flex items-center justify-center h-full min-h-[calc(100vh-var(--header-height))]">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading resume...</p>
+              </div>
+            </div>
+          ) : selectedResume ? (
             <TailoredResumeEditor
               resume={selectedResume}
               onJobDescriptionChange={updateJobDescription}
               onItemSave={handleItemSave}
               onItemRegenerate={regenerateItem}
+              onSaveResume={handleSaveResume}
+              isUnsaved={selectedResume.isUnsaved}
+              onUpdateExperience={handleUpdateExperience}
+              onDeleteExperience={handleDeleteExperience}
+              onUpdateProject={handleUpdateProject}
+              onDeleteProject={handleDeleteProject}
+              onUpdateEducation={handleUpdateEducation}
+              onDeleteEducation={handleDeleteEducation}
+              onUpdateSkill={handleUpdateSkill}
+              onDeleteSkill={handleDeleteSkill}
             />
           ) : (
-            <CreateNewTailoredResumeInset />
+            <CreateNewTailoredResumeInset 
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
+              error={error}
+            />
           )}
         </main>
       </SidebarInset>

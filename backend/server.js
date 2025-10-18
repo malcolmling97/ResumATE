@@ -21,7 +21,6 @@ app.use(cors({
 }))
 app.use(express.json())
 app.use(cookies())
-
 app.use(session({
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
@@ -31,17 +30,15 @@ app.use(session({
         maxAge: 24 * 60 * 60 * 1000
     }
 }))
-
 app.use(passport.initialize())
 app.use(passport.session())
 
 app.use("/api/v1/auth", userRoutes)
 app.use("/api/v1/education", educationRoutes)
 app.use("/api/v1/skills", skillsRoutes)
-app.use("/api/v1/resume-items", resumeItemsRoutes)
 app.use("/api/v1/resume", resumeRoutes)
+app.use("/api/v1/resume-items", resumeItemsRoutes)
 app.use("/api/v1/curated-resumes", curatedResumesRoutes)
-
 
 try {
     const port = process.env.PORT
