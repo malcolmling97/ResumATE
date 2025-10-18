@@ -135,22 +135,56 @@ const createCuratedResume = async (userId, resumeData) => {
     )
     console.log('Curated resume created')
 
-    // 3. Process experiences - Reference master resume items
+    // 3. Process experiences - Create resume items if needed, then link
     if (experiences && experiences.length > 0) {
       console.log(`Processing ${experiences.length} experiences...`)
       for (let i = 0; i < experiences.length; i++) {
         const exp = experiences[i]
-        console.log(`Processing experience ${i + 1}/${experiences.length}`)
+        console.log(`Processing experience ${i + 1}/${experiences.length}:`, exp.title)
         
-        // Get the resume_item_id (should exist from master resume)
-        const resumeItemId = exp.id
+        let resumeItemId = exp.id
         
-        if (!resumeItemId) {
-          console.warn(`Experience ${i + 1} has no ID, skipping...`)
-          continue // Skip if no reference to master resume
+        // Check if this is a temp ID (like "exp-0") or doesn't exist in DB
+        const isValidUUID = resumeItemId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resumeItemId)
+        
+        if (!isValidUUID) {
+          // Create a new resume_item entry
+          resumeItemId = crypto.randomUUID()
+          console.log(`Creating new resume_item for experience: ${exp.title}`)
+          
+          // Parse and validate dates
+          const parseDate = (dateStr) => {
+            if (!dateStr) return null
+            // If it's a placeholder like "Start Date", "End Date", return null
+            if (typeof dateStr === 'string' && (dateStr.toLowerCase().includes('start') || dateStr.toLowerCase().includes('end') || dateStr.toLowerCase() === 'present')) {
+              return null
+            }
+            // Try to parse as date
+            const date = new Date(dateStr)
+            return !isNaN(date.getTime()) ? dateStr : null
+          }
+          
+          await client.query(
+            `INSERT INTO resume_items(
+              id, user_id, item_type, title, organization,
+              start_date, end_date, description
+            )
+             VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+             RETURNING id`,
+            [
+              resumeItemId,
+              userId,
+              'experience',
+              exp.title,
+              exp.company,
+              parseDate(exp.startDate),
+              parseDate(exp.endDate),
+              null
+            ]
+          )
         }
 
-        // Create junction - only store overrides if AI modified anything
+        // Create junction
         const junctionId = crypto.randomUUID()
         await client.query(
           `INSERT INTO curated_resume_items_junction(
@@ -164,9 +198,9 @@ const createCuratedResume = async (userId, resumeData) => {
             curatedResumeId,
             resumeItemId,
             i,
-            exp.titleEdited ? exp.title : null, // Only store if modified
-            exp.companyEdited ? exp.company : null, // Only store if modified
-            exp.wasEdited || false
+            null, // We're storing the actual values in resume_items now
+            null,
+            false
           ]
         )
 
@@ -201,21 +235,54 @@ const createCuratedResume = async (userId, resumeData) => {
       console.log('Experiences processed')
     }
 
-    // 4. Process projects - Reference master resume items
+    // 4. Process projects - Create resume items if needed, then link
     if (projects && projects.length > 0) {
       console.log(`Processing ${projects.length} projects...`)
       for (let i = 0; i < projects.length; i++) {
         const proj = projects[i]
-        console.log(`Processing project ${i + 1}/${projects.length}`)
+        console.log(`Processing project ${i + 1}/${projects.length}:`, proj.title)
         
-        const resumeItemId = proj.id
+        let resumeItemId = proj.id
         
-        if (!resumeItemId) {
-          console.warn(`Project ${i + 1} has no ID, skipping...`)
-          continue // Skip if no reference to master resume
+        // Check if this is a temp ID (like "proj-0") or doesn't exist in DB
+        const isValidUUID = resumeItemId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resumeItemId)
+        
+        if (!isValidUUID) {
+          // Create a new resume_item entry
+          resumeItemId = crypto.randomUUID()
+          console.log(`Creating new resume_item for project: ${proj.title}`)
+          
+          // Parse and validate date
+          const parseDate = (dateStr) => {
+            if (!dateStr) return null
+            // If it's a placeholder, return null
+            if (typeof dateStr === 'string' && (dateStr.toLowerCase().includes('date') || dateStr.toLowerCase() === 'present')) {
+              return null
+            }
+            // Try to parse as date
+            const date = new Date(dateStr)
+            return !isNaN(date.getTime()) ? dateStr : null
+          }
+          
+          await client.query(
+            `INSERT INTO resume_items(
+              id, user_id, item_type, title,
+              start_date, description
+            )
+             VALUES($1, $2, $3, $4, $5, $6)
+             RETURNING id`,
+            [
+              resumeItemId,
+              userId,
+              'project',
+              proj.title,
+              parseDate(proj.date),
+              null
+            ]
+          )
         }
 
-        // Create junction - only store overrides if AI modified anything
+        // Create junction
         const junctionId = crypto.randomUUID()
         await client.query(
           `INSERT INTO curated_resume_items_junction(
@@ -229,8 +296,8 @@ const createCuratedResume = async (userId, resumeData) => {
             curatedResumeId,
             resumeItemId,
             i + (experiences?.length || 0),
-            proj.titleEdited ? proj.title : null, // Only store if modified
-            proj.wasEdited || false
+            null, // We're storing the actual values in resume_items now
+            false
           ]
         )
 
@@ -378,10 +445,59 @@ const getCuratedResumeById = async (curatedResumeId, userId) => {
       }
     }
 
+    // Fetch user's skills from skills table
+    const skillsResult = await client.query(
+      `SELECT name, category, level 
+       FROM skills 
+       WHERE user_id = $1 
+       ORDER BY created_at ASC`,
+      [userId]
+    )
+    const skills = skillsResult.rows.map(s => s.name)
+    console.log('Skills fetched:', skills.length, 'items')
+
+    // Fetch user's education from education table
+    const educationResult = await client.query(
+      `SELECT title, description, grade, start_date, end_date
+       FROM education 
+       WHERE user_id = $1 
+       ORDER BY start_date DESC NULLS LAST`,
+      [userId]
+    )
+    const education = educationResult.rows.map(edu => ({
+      institution: edu.title, // Using title field for now
+      degree: edu.title,
+      year: edu.end_date ? new Date(edu.end_date).getFullYear() : 'Present'
+    }))
+    console.log('Education fetched:', education.length, 'items')
+
+    // Fetch user's contact info from users table
+    const userResult = await client.query(
+      `SELECT name, username, email, phone 
+       FROM users 
+       WHERE id = $1`,
+      [userId]
+    )
+    const contactInfo = userResult.rows.length > 0 ? {
+      name: userResult.rows[0].name || userResult.rows[0].username || 'User',
+      email: userResult.rows[0].email || '',
+      phone: userResult.rows[0].phone || ''
+    } : {}
+    console.log('Contact info fetched for user:', userId)
+
+    console.log('Final data being returned:')
+    console.log('- Experiences:', experiences.length)
+    console.log('- Projects:', projects.length)
+    console.log('- Skills:', skills.length)
+    console.log('- Education:', education.length)
+
     return {
       ...resume,
       experiences,
-      projects
+      projects,
+      skills,
+      education,
+      contactInfo
     }
   } catch (error) {
     console.error("Error fetching curated resume:", error.message)

@@ -96,10 +96,11 @@ export const generateResume = async (req, res) => {
         // TODO: This will call your FastAPI service
         // For now, fetch the user's master resume and return it with mock selections
         
-        const [user, skills, resumeItems] = await Promise.all([
+        const [user, skills, resumeItems, education] = await Promise.all([
             AuthModel.getUserById(userId),
             skillsModel.getUserSkills(userId),
-            resumeItemsModel.getUserResumeItems(userId)
+            resumeItemsModel.getUserResumeItems(userId),
+            import('../models/education.model.js').then(m => m.default.getUserEducation(userId))
         ])
 
         // Fetch points for resume items
@@ -120,7 +121,7 @@ export const generateResume = async (req, res) => {
                 email: user.email,
                 phone: user.phone || "(555) 123-4567"
             },
-            skills: skills.flatMap(s => s.skills || []).slice(0, 8), // Take first 8 skills
+            skills: skills.map(s => s.name).slice(0, 8), // Extract skill names, take first 8
             experiences: experiences.slice(0, 2).map(exp => ({
                 id: exp.id, // ← Include ID for reference
                 title: exp.title,
@@ -142,7 +143,12 @@ export const generateResume = async (req, res) => {
                     content: p.content
                 }))
             })),
-            education: [] // Can add education if needed
+            education: education.map(edu => ({
+                degree: edu.title,
+                institution: edu.title, // Using title field since there's no separate institution
+                year: edu.end_date ? new Date(edu.end_date).getFullYear() : 'Present',
+                grade: edu.grade
+            }))
         }
 
         // Simulate API delay
