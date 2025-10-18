@@ -11,7 +11,6 @@ import {
 const NavActions = ({ onNewResume }) => {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Actions</SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
           <SidebarMenuItem>
