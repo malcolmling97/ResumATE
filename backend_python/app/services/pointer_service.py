@@ -178,8 +178,9 @@ async def generate_pointer_variations(pointer_id: str, resume_item_id: str, user
             
             agent = ai_client.create_agent(
                 name=f"pointer-variation-{i+1}",
-                model="gpt-4",
-                tools=[]
+                model="gpt-4o",
+                tools=[],
+                temperature=0.4
             )
             
             result = await ai_client.run_agent(agent, prompt)
@@ -259,8 +260,9 @@ async def generate_single_pointer_with_context(resume_item_id: str, user_id: str
         # Create agent for pointer generation
         agent = ai_client.create_agent(
             name="contextual-pointer-generator",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.4
         )
         
         # Run the agent
@@ -339,7 +341,8 @@ async def generate_pointer_chunks_with_context(resume_item_id: str, user_id: str
             agent = ai_client.create_agent(
                 name=f"contextual-pointer-generator-{i+1}",
                 model="gpt-4",
-                tools=[]
+                tools=[],
+                temperature=0.4  # Lower temp for consistent, factual bullet points
             )
             
             result = await ai_client.run_agent(agent, variation_prompt)
@@ -391,51 +394,53 @@ async def generate_full_resume_with_single_call(user_data: Dict[str, Any], job_d
         skills_list = [skill.get("name", "") for skill in skills]
         skills_text = ", ".join(skills_list)
         
-        # Simplified prompt with clear instructions
-        prompt = f"""You are a resume optimization AI. Analyze the job description and create an optimized resume.
+        # ULTRA-SIMPLE PROMPT - Less is more
+        prompt = f"""Create a resume optimized for this job. Use the candidate's actual data.
 
-JOB DESCRIPTION:
+JOB:
 {job_description}
 
-CANDIDATE'S AVAILABLE SKILLS:
-{skills_text}
-
-CANDIDATE'S WORK EXPERIENCES:
-{experiences_text}
-
-CANDIDATE'S PROJECTS:
-{projects_text}
+CANDIDATE:
+Skills: {skills_text}
+Experiences: {experiences_text}
+Projects: {projects_text}
 
 YOUR TASK:
-1. From the skills list above, select ALL skills that are RELEVANT to the job description (could be 4, could be 10 - include what's needed)
-2. Select the top 2-3 most relevant experiences OR projects that match the job
-3. For each experience: generate 4 tailored bullet points highlighting relevant achievements
-4. For each project: generate 3 tailored bullet points showcasing relevant work
+1. Pick 4-8 relevant skills from candidate's list (don't invent new ones)
+2. Select 1-2 best experiences or projects
+3. Write 3-4 strong bullet points for each
 
-CRITICAL: Return ONLY valid JSON in this exact format:
+BULLET POINT RULES:
+- Every bullet MUST include numbers (users, %, time saved, services, requests, etc.)
+- Use specific tech stacks (Python/FastAPI, not just "Python")
+- Start with action verbs (Built, Reduced, Optimized, Scaled, Led)
+- Show impact (faster, more reliable, reduced cost, improved performance)
+
+GOOD EXAMPLES:
+✅ "Built API using Python/FastAPI serving 3K+ users with 200ms response time"
+✅ "Reduced deployment time by 35% through Docker containerization of 4 services"
+✅ "Optimized PostgreSQL queries improving response from 400ms to 150ms"
+
+BAD (missing metrics):
+❌ "Developed resilient applications emphasizing scalability and performance"
+❌ "Collaborated with teams to design efficient solutions"
+
+Return JSON:
 {{
-  "selected_skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+  "selected_skills": ["Python", "Docker", ...],
   "selected_experiences": [
-    {{
-      "title": "Job Title",
-      "company": "Company Name",
-      "points": ["Achievement 1 with metrics", "Achievement 2 with metrics", "Achievement 3 with metrics", "Achievement 4 with metrics"]
-    }}
+    {{"title": "...", "company": "...", "points": ["...", "...", "..."]}}
   ],
   "selected_projects": [
-    {{
-      "title": "Project Name",
-      "points": ["Description 1 with impact", "Description 2 with impact", "Description 3 with impact"]
-    }}
+    {{"title": "...", "points": ["...", "...", "..."]}}
   ]
-}}
-
-Return the JSON now:"""
+}}"""
         
         agent = ai_client.create_agent(
             name="resume-optimizer",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4",  # Using GPT-4 for better quality
+            tools=[],
+            temperature=0.5  # Balanced - enough creativity for good bullets, still grounded
         )
         
         result = await ai_client.run_agent(agent, prompt)
@@ -452,11 +457,39 @@ Return the JSON now:"""
         if json_match:
             parsed = json.loads(json_match.group())
             
-            # Validate that selected_skills are actually from the candidate's skills
+            # STRIP any extra fields the AI might have added (education, contactInfo, etc.)
+            allowed_fields = {"selected_skills", "selected_experiences", "selected_projects"}
+            extra_fields = set(parsed.keys()) - allowed_fields
+            if extra_fields:
+                logger.warning(f"AI returned extra fields (removing): {extra_fields}")
+                for field in extra_fields:
+                    del parsed[field]
+            
+            # STRICT validation: selected_skills must exist in candidate's skills (case-insensitive)
             if "selected_skills" in parsed:
-                valid_skills = [s for s in parsed["selected_skills"] if s in skills_list]
+                ai_selected_count = len(parsed["selected_skills"])
+                skills_lower_map = {s.lower(): s for s in skills_list}
+                valid_skills = []
+                
+                logger.info(f"Validating skills. Database has: {skills_list}")
+                logger.info(f"AI selected: {parsed['selected_skills']}")
+                
+                for ai_skill in parsed["selected_skills"]:
+                    # Try exact match first
+                    if ai_skill in skills_list:
+                        valid_skills.append(ai_skill)
+                        logger.info(f"  ✓ '{ai_skill}' - exact match")
+                    # Try case-insensitive match
+                    elif ai_skill.lower() in skills_lower_map:
+                        # Use the actual skill name from DB
+                        db_skill = skills_lower_map[ai_skill.lower()]
+                        valid_skills.append(db_skill)
+                        logger.warning(f"  ~ '{ai_skill}' case mismatch - using DB version '{db_skill}'")
+                    else:
+                        logger.error(f"  ✗ '{ai_skill}' HALLUCINATED - NOT in database [{', '.join(skills_list)}]. REMOVING.")
+                
                 parsed["selected_skills"] = valid_skills
-                logger.info(f"Validated {len(valid_skills)} skills from AI response")
+                logger.info(f"Validation complete: {len(valid_skills)}/{ai_selected_count} skills kept, {ai_selected_count - len(valid_skills)} removed")
         else:
             logger.error("Failed to parse JSON from AI response")
             parsed = {"selected_skills": [], "selected_experiences": [], "selected_projects": []}
@@ -509,8 +542,9 @@ async def select_best_pointers(all_pointers: List[str], job_description: str, li
         
         agent = ai_client.create_agent(
             name="pointer-selector",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.3
         )
         
         result = await ai_client.run_agent(agent, prompt)
@@ -582,8 +616,9 @@ async def select_relevant_experiences_with_context(user_data: Dict[str, Any], jo
         
         agent = ai_client.create_agent(
             name="experience-selector",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.3
         )
         
         result = await ai_client.run_agent(agent, prompt)
@@ -657,8 +692,9 @@ async def generate_summary_pointers(user_data: Dict[str, Any], job_description: 
         
         agent = ai_client.create_agent(
             name="summary-generator",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.4
         )
         
         result = await ai_client.run_agent(agent, prompt)
@@ -718,8 +754,9 @@ async def generate_single_pointer(experience: Dict[str, Any], job_description: s
         # Create agent for pointer generation
         agent = ai_client.create_agent(
             name="pointer-generator",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.4
         )
         
         # Run the agent
@@ -766,8 +803,9 @@ async def generate_pointer_array(experience: Dict[str, Any], job_description: st
             
             agent = ai_client.create_agent(
                 name=f"pointer-generator-{i+1}",
-                model="gpt-4",
-                tools=[]
+                model="gpt-4o",
+                tools=[],
+                temperature=0.4
             )
             
             result = await ai_client.run_agent(agent, variation_prompt)
@@ -827,8 +865,9 @@ async def select_relevant_experiences(resume_data: Dict[str, List[Dict[str, Any]
         
         agent = ai_client.create_agent(
             name="experience-selector",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.3
         )
         
         result = await ai_client.run_agent(agent, prompt)

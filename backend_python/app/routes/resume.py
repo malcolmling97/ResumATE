@@ -83,18 +83,17 @@ async def generate_pointer_chunks(request: GeneratePointerChunksRequest):
 @router.post("/generate-full-resume", response_model=GenerateFullResumeResponse)
 async def generate_full_resume(request: GenerateFullResumeRequest):
     """
-    Full resume optimization with AI-powered skill selection (SINGLE AI CALL).
+    Full resume optimization with AI-powered selection (SINGLE AI CALL).
     
-    POST /api/resume/optimize
+    POST /api/generate-full-resume
     
-    AI analyzes all data and generates a complete optimized resume:
-    - Selects 6-8 most relevant skills matching the job
-    - Selects top 3 most relevant experiences OR projects
-    - Generates 4 tailored bullets per experience
-    - Generates 3 tailored bullets per project
+    AI analyzes job description and optimizes resume with RELEVANCY as #1 priority:
+    - Selects 4-12 relevant skills (only those matching the job)
+    - Selects top 2-3 most relevant experiences OR projects
+    - Generates specific, quantifiable bullet points with metrics
+    - Returns only high-quality content (empty > vague)
     
-    Returns frontend-ready JSON matching the expected structure.
-    Speed: ~5-10 seconds (1 AI call)
+    Returns frontend-ready JSON. Speed: ~5-10 seconds (1 AI call)
     """
     try:
         logger.info("Starting full resume optimization with SINGLE AI call")
@@ -107,14 +106,19 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
         
         user_info = user_data.get("user", {})
         
-        # Build contact info (static data)
+        # ============================================
+        # STATIC DATA - Built directly from database
+        # (AI never sees or modifies these fields)
+        # ============================================
+        
+        # Build contact info (static data - directly from DB)
         contact_info = ContactInfo(
             name=user_info.get("name", ""),
             email=user_info.get("email", ""),
             phone=user_info.get("phone")
         )
         
-        # Build education list (static data)
+        # Build education list (static data - directly from DB)
         education_list = [
             Education(
                 degree=edu.get("title", ""),
@@ -124,12 +128,30 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
             for edu in user_data.get("education", [])
         ]
         
+        # ============================================
+        # DYNAMIC DATA - AI optimizes based on job description
+        # (skills, experiences, projects, bullet points)
+        # ============================================
+        
         # SINGLE AI CALL: Generate complete optimized resume (including skill selection)
         logger.info("Making SINGLE AI call to generate complete resume with skill selection")
-        ai_result = await generate_full_resume_with_single_call(
-            user_data=user_data,
-            job_description=request.job_description
-        )
+        try:
+            ai_result = await generate_full_resume_with_single_call(
+                user_data=user_data,
+                job_description=request.job_description
+            )
+        except Exception as ai_error:
+            logger.error(f"AI call failed: {ai_error}")
+            # Check if it's a quota/billing error
+            if "quota" in str(ai_error).lower() or "billing" in str(ai_error).lower():
+                raise HTTPException(
+                    status_code=402,  # Payment Required
+                    detail="OpenAI API quota exceeded. Please check your OpenAI billing settings."
+                )
+            raise HTTPException(
+                status_code=500,
+                detail=f"AI service error: {str(ai_error)}"
+            )
         
         # Parse AI result and format for frontend
         experiences = []
