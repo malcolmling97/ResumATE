@@ -104,3 +104,26 @@ class GenerateFullResumeResponse(BaseModel):
     experiences: List[Experience]
     projects: List[Project]
     education: List[Education]
+
+
+class CategoryScores(BaseModel):
+    """Category scores breakdown."""
+    skills_match: int
+    experience_relevance: int
+    bullet_quality: int
+    presentation: int
+
+
+class AnalyzeResumeRequest(BaseModel):
+    """Request model for resume analysis."""
+    user_id: str
+    job_description: str
+
+
+class AnalyzeResumeResponse(BaseModel):
+    """Response model for resume analysis feedback."""
+    score: int
+    category_scores: CategoryScores
+    strengths: List[str]
+    weaknesses: List[str]
+    suggestions: List[str]

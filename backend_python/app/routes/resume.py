@@ -7,6 +7,8 @@ from app.models import (
     GeneratePointerChunksResponse,
     GenerateFullResumeRequest,
     GenerateFullResumeResponse,
+    AnalyzeResumeRequest,
+    AnalyzeResumeResponse,
     ContactInfo,
     Experience,
     Project,
@@ -19,6 +21,7 @@ from app.services.pointer_service import (
     get_resume_item_with_pointers,
     generate_full_resume_with_single_call
 )
+from app.services.feedback_service import analyze_resume_relevancy
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["resume"])
@@ -224,3 +227,35 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
     except Exception as e:
         logger.error(f"Error in generate_full_resume: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate full resume: {str(e)}")
+
+
+@router.post("/analyze-resume", response_model=AnalyzeResumeResponse)
+async def analyze_resume(request: AnalyzeResumeRequest):
+    """
+    Analyze resume relevancy to job description and provide feedback.
+    
+    POST /api/analyze-resume
+    
+    Returns a score (0-100) and detailed feedback on:
+    - Skills match
+    - Experience relevance
+    - Bullet point quality
+    - Overall presentation
+    
+    Also provides strengths, weaknesses, and actionable suggestions.
+    """
+    try:
+        logger.info(f"Analyzing resume for user {request.user_id}")
+        
+        analysis = await analyze_resume_relevancy(
+            user_id=request.user_id,
+            job_description=request.job_description
+        )
+        
+        logger.info(f"Analysis complete: Score {analysis.get('score')}/100")
+        
+        return AnalyzeResumeResponse(**analysis)
+        
+    except Exception as e:
+        logger.error(f"Error in analyze_resume: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to analyze resume: {str(e)}")
