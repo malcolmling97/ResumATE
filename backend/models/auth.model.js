@@ -69,7 +69,7 @@ const deleteUser = async (id) => {
 const getUserByEmail = async (email) => {
   try {
     const results = await query(
-      `SELECT u.id, u.username, u.email 
+      `SELECT u.id, u.username, u.email, u.name, u.about, u.location, u.phone, u.created_at, u.provider, u.provider_id
        FROM users u WHERE u.email = $1`,
       [email]
     )
@@ -96,7 +96,7 @@ const createGoogleUser = async (userData) => {
     // Create user first
     const userResults = await query(
       `INSERT INTO users(id, username, email, provider, provider_id) 
-       VALUES($1, $2, $3, 'google', $4) RETURNING id, username, email`,
+       VALUES($1, $2, $3, 'google', $4) RETURNING id, username, email, name, about, location, phone, created_at, provider, provider_id`,
       [userId, finalUsername, email, googleId]
     )
 
@@ -117,7 +117,7 @@ const createGoogleUser = async (userData) => {
 const getUserByProvider = async (provider, providerUserId) => {
   try {
     const results = await query(
-      `SELECT u.id, u.username, u.email 
+      `SELECT u.id, u.username, u.email, u.name, u.about, u.location, u.phone, u.created_at, u.provider, u.provider_id
        FROM users u
        WHERE u.provider = $1 AND u.provider_id = $2`,
       [provider, providerUserId]
@@ -174,7 +174,7 @@ const createOAuthUser = async (userData) => {
 const getUserByUsername = async (username) => {
   try {
     const results = await query(
-      `SELECT u.id, u.username, u.email 
+      `SELECT u.id, u.username, u.email, u.name, u.about, u.location, u.phone, u.created_at, u.provider, u.provider_id
        FROM users u WHERE u.username = $1`,
       [username]
     )
@@ -189,7 +189,7 @@ const getUserByUsername = async (username) => {
 const getUserById = async (userId) => {
   try {
     const results = await query(
-      `SELECT u.id, u.username, u.email 
+      `SELECT u.id, u.username, u.email, u.name, u.about, u.location, u.phone, u.created_at, u.provider, u.provider_id
        FROM users u WHERE u.id = $1`,
       [userId]
     )
@@ -197,6 +197,33 @@ const getUserById = async (userId) => {
   } catch (error) {
     console.error("Error fetching user by ID:", error.message)
     throw new Error("DB error while fetching user by ID.")
+  }
+}
+
+// Update user profile
+const updateUser = async (userId, updates) => {
+  try {
+    const { name, about, location, phone } = updates
+    
+    const results = await query(
+      `UPDATE users 
+       SET name = COALESCE($2, name),
+           about = COALESCE($3, about),
+           location = COALESCE($4, location),
+           phone = COALESCE($5, phone)
+       WHERE id = $1
+       RETURNING id, username, email, name, about, location, phone, created_at, provider, provider_id`,
+      [userId, name, about, location, phone]
+    )
+
+    if (results.rows.length === 0) {
+      throw new Error("User not found.")
+    }
+
+    return results.rows[0]
+  } catch (error) {
+    console.error("Error updating user:", error.message)
+    throw new Error("DB error while updating user.")
   }
 }
 
@@ -208,5 +235,6 @@ export default {
   getUserByProvider,
   createOAuthUser,
   getUserByUsername,
-  getUserById
+  getUserById,
+  updateUser
 }

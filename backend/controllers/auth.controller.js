@@ -71,6 +71,45 @@ const deleteUser = async (req, res) => {
     }
 }
 
+const updateUser = async (req, res) => {
+    try {
+        const { id } = req.params
+        
+        // Verify the user is updating their own profile
+        if (req.user.id !== id) {
+            return res.status(403).json({
+                status: "fail",
+                message: "You are not authorized to update this user"
+            })
+        }
+
+        // Only allow updating specific fields
+        const { name, about, location, phone } = req.body
+        
+        const updates = {
+            name: name !== undefined ? name : null,
+            about: about !== undefined ? about : null,
+            location: location !== undefined ? location : null,
+            phone: phone !== undefined ? phone : null
+        }
+
+        const updatedUser = await AuthModel.updateUser(id, updates)
+
+        res.status(200).json({
+            status: "success",
+            data: {
+                user: updatedUser
+            }
+        })
+    } catch (error) {
+        console.error("Update user error:", error.message)
+        return res.status(500).json({
+            status: "error",
+            message: error.message
+        })
+    }
+}
+
 const googleCallback = async (req, res) => {
     try {
         // req.user contains the Google profile from Passport
@@ -177,5 +216,6 @@ export default {
     signOut,
     deleteUser,
     getCurrentUser,
+    updateUser,
     googleCallback
 }

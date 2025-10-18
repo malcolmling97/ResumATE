@@ -35,7 +35,7 @@ const SignInPage = () => {
           // Handle successful OAuth login
           if (evt.data.user) {
             login(evt.data.user)
-            navigate("/")
+            navigate("/profile")
           }
 
           // Clean up

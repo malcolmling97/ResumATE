@@ -8,6 +8,7 @@ const router = express.Router()
 
 router.post("/signout", authController.signOut)
 router.get("/user", verifyToken, authController.getCurrentUser)
+router.patch("/user/:id", verifyToken, authController.updateUser)
 router.delete("/delete/:id", verifyToken, authController.deleteUser)
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }))
 router.get("/google/callback",
