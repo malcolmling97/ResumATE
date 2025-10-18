@@ -8,6 +8,8 @@ import passport from "./config/passport.js"
 import userRoutes from "./routes/auth.route.js"
 import educationRoutes from "./routes/education.route.js"
 import skillsRoutes from "./routes/skills.route.js"
+import resumeItemsRoutes from "./routes/resumeItems.route.js"
+import resumeRoutes from "./routes/resume.route.js"
 
 const app = express()
 
@@ -35,6 +37,8 @@ app.use(passport.session())
 app.use("/api/v1/auth", userRoutes)
 app.use("/api/v1/education", educationRoutes)
 app.use("/api/v1/skills", skillsRoutes)
+app.use("/api/v1/resume-items", resumeItemsRoutes)
+app.use("/api/v1/resume", resumeRoutes)
 
 
 try {

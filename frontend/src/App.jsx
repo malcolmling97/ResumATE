@@ -3,6 +3,8 @@ import HomePage from './pages/HomePage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import ProfilePage from './pages/ProfilePage'
+import MasterResumePage from './pages/MasterResumePage'
+import GenerateResumePage from './pages/GenerateResumePage'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -15,6 +17,16 @@ function App() {
         <Route path='/profile' element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path='/master-resume' element={
+          <ProtectedRoute>
+            <MasterResumePage />
+          </ProtectedRoute>
+        } />
+        <Route path='/generate-resume' element={
+          <ProtectedRoute>
+            <GenerateResumePage />
           </ProtectedRoute>
         } />
       </Routes>
