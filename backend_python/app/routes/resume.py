@@ -135,12 +135,12 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
         experiences = []
         projects = []
         
-        # Use AI-selected skills (fallback to all skills if AI didn't return any)
+        # Use AI-selected skills (NO fallback - empty is better than irrelevant)
         selected_skills = ai_result.get("selected_skills", [])
         if not selected_skills:
-            # Fallback: use all skills from database
-            selected_skills = [skill.get("name", "") for skill in user_data.get("skills", [])]
-            logger.warning("AI did not return selected skills, using all skills from database")
+            logger.error("AI did not return any skills - this is a problem with the AI response")
+            # Return empty rather than all skills - better to show nothing than irrelevant skills
+            selected_skills = []
         
         # Map AI-selected experiences to database items for date information
         resume_items_map = {item["id"]: item for item in user_data.get("resume_items", [])}

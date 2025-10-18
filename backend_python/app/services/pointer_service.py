@@ -372,7 +372,6 @@ async def generate_full_resume_with_single_call(user_data: Dict[str, Any], job_d
         user_info = user_data.get("user", {})
         resume_items = user_data.get("resume_items", [])
         skills = user_data.get("skills", [])
-        education = user_data.get("education", [])
         
         # Separate experiences and projects
         experiences = [item for item in resume_items if item.get("item_type") == "experience"]
@@ -380,77 +379,69 @@ async def generate_full_resume_with_single_call(user_data: Dict[str, Any], job_d
         
         # Build context strings
         experiences_text = "\n".join([
-            f"- {item.get('title', '')} at {item.get('organization', '')}: {item.get('description', '')}"
+            f"- Title: {item.get('title', '')}, Company: {item.get('organization', '')}, Description: {item.get('description', '')}"
             for item in experiences
         ])
         
         projects_text = "\n".join([
-            f"- {item.get('title', '')}: {item.get('description', '')}"
+            f"- Title: {item.get('title', '')}, Description: {item.get('description', '')}"
             for item in projects
         ])
         
-        skills_text = ", ".join([skill.get("name", "") for skill in skills])
+        skills_list = [skill.get("name", "") for skill in skills]
+        skills_text = ", ".join(skills_list)
         
-        # Create the prompt with expected JSON structure
-        prompt = f"""
-You are a resume optimization expert. Generate a complete optimized resume for this candidate based on the job description.
+        # Simplified prompt with clear instructions
+        prompt = f"""You are a resume optimization AI. Analyze the job description and create an optimized resume.
 
-CANDIDATE DATA:
-Name: {user_info.get('name', '')}
-Email: {user_info.get('email', '')}
-Phone: {user_info.get('phone', '')}
-
-Skills: {skills_text}
-
-Work Experiences:
-{experiences_text}
-
-Projects:
-{projects_text}
-
-Education:
-{", ".join([edu.get("title", "") for edu in education])}
-
-TARGET JOB DESCRIPTION:
+JOB DESCRIPTION:
 {job_description}
 
-INSTRUCTIONS:
-1. Select the 6-8 MOST RELEVANT skills from the candidate's skills that match the job
-2. Select the top 3 MOST RELEVANT work experiences OR projects for this job
-3. For each selected experience, generate 4 compelling bullet points
-4. For each selected project, generate 3 compelling bullet points
-5. Each bullet point should be tailored to match the job requirements
-6. Include quantifiable metrics where possible
+CANDIDATE'S AVAILABLE SKILLS:
+{skills_text}
 
-RETURN ONLY THIS EXACT JSON STRUCTURE (no other text):
+CANDIDATE'S WORK EXPERIENCES:
+{experiences_text}
+
+CANDIDATE'S PROJECTS:
+{projects_text}
+
+YOUR TASK:
+1. From the skills list above, select ALL skills that are RELEVANT to the job description (could be 4, could be 10 - include what's needed)
+2. Select the top 2-3 most relevant experiences OR projects that match the job
+3. For each experience: generate 4 tailored bullet points highlighting relevant achievements
+4. For each project: generate 3 tailored bullet points showcasing relevant work
+
+CRITICAL: Return ONLY valid JSON in this exact format:
 {{
-  "selected_skills": ["JavaScript", "React", "Node.js", "Python", "AWS", "SQL"],
+  "selected_skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
   "selected_experiences": [
     {{
-      "title": "experience title",
-      "company": "company name",
-      "points": ["bullet 1", "bullet 2", "bullet 3", "bullet 4"]
+      "title": "Job Title",
+      "company": "Company Name",
+      "points": ["Achievement 1 with metrics", "Achievement 2 with metrics", "Achievement 3 with metrics", "Achievement 4 with metrics"]
     }}
   ],
   "selected_projects": [
     {{
-      "title": "project title",
-      "points": ["bullet 1", "bullet 2", "bullet 3"]
+      "title": "Project Name",
+      "points": ["Description 1 with impact", "Description 2 with impact", "Description 3 with impact"]
     }}
   ]
 }}
 
-Generate the optimized resume now:
-"""
+Return the JSON now:"""
         
         agent = ai_client.create_agent(
-            name="full-resume-generator",
+            name="resume-optimizer",
             model="gpt-4",
             tools=[]
         )
         
         result = await ai_client.run_agent(agent, prompt)
         output = str(result.final_output) if result.final_output else '{}'
+        
+        logger.info(f"AI Response: {output[:200]}...")
         
         # Parse the JSON response
         import json
@@ -460,17 +451,23 @@ Generate the optimized resume now:
         json_match = re.search(r'\{.*\}', output, re.DOTALL)
         if json_match:
             parsed = json.loads(json_match.group())
+            
+            # Validate that selected_skills are actually from the candidate's skills
+            if "selected_skills" in parsed:
+                valid_skills = [s for s in parsed["selected_skills"] if s in skills_list]
+                parsed["selected_skills"] = valid_skills
+                logger.info(f"Validated {len(valid_skills)} skills from AI response")
         else:
-            # Fallback if parsing fails
+            logger.error("Failed to parse JSON from AI response")
             parsed = {"selected_skills": [], "selected_experiences": [], "selected_projects": []}
         
-        logger.info(f"Generated resume with {len(parsed.get('selected_skills', []))} skills, {len(parsed.get('selected_experiences', []))} experiences and {len(parsed.get('selected_projects', []))} projects in single AI call")
+        logger.info(f"Generated resume with {len(parsed.get('selected_skills', []))} skills, {len(parsed.get('selected_experiences', []))} experiences and {len(parsed.get('selected_projects', []))} projects")
         
         return parsed
         
     except Exception as e:
         logger.error(f"Error generating full resume with single call: {e}")
-        return {"selected_experiences": [], "selected_projects": []}
+        return {"selected_skills": [], "selected_experiences": [], "selected_projects": []}
 
 
 async def select_best_pointers(all_pointers: List[str], job_description: str, limit: int = 3) -> List[str]:
