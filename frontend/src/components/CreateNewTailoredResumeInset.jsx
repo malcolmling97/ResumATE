@@ -79,7 +79,7 @@ const CreateNewTailoredResumeInset = ({ onGenerate, onLoadSample, isGenerating, 
           </Button>
 
           {/* Development/Testing option */}
-          {onLoadSample && (
+          {/* {onLoadSample && (
             <div className="w-full relative">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
@@ -103,7 +103,7 @@ const CreateNewTailoredResumeInset = ({ onGenerate, onLoadSample, isGenerating, 
               <FlaskConical className="h-4 w-4" />
               Load Sample Resume (No API Call)
             </Button>
-          )}
+          )} */}
         </div>
       </div>
     </div>

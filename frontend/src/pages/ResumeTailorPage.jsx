@@ -197,7 +197,7 @@ const ResumeTailorContent = () => {
           ) : (
             <CreateNewTailoredResumeInset 
               onGenerate={handleGenerate}
-              onLoadSample={loadSampleResume}
+              onLoadSample={false}
               isGenerating={isGenerating}
               error={error}
             />
