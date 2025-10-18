@@ -6,14 +6,13 @@ import ProfilePage from './pages/ProfilePage'
 import MasterResumePage from './pages/MasterResumePage'
 import GenerateResumePage from './pages/GenerateResumePage'
 import ProtectedRoute from './components/ProtectedRoute'
-import HomePageTwo from './pages/ResumeTailorPage'
+import ResumeTailorPage from './pages/ResumeTailorPage'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path='/' element={<HomePage />} />
-        <Route path='/home-two' element={<HomePageTwo />} />
         <Route path='/sign-in' element={<SignInPage />} />
         <Route path='/sign-up' element={<SignUpPage />} />
         <Route path='/profile' element={
@@ -28,7 +27,7 @@ function App() {
         } />
         <Route path='/generate-resume' element={
           <ProtectedRoute>
-            <GenerateResumePage />
+            <ResumeTailorPage />
           </ProtectedRoute>
         } />
       </Routes>
