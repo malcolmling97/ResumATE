@@ -3,67 +3,77 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from app.models import (
-    GenerateOnePointerRequest,
-    GenerateOnePointerResponse,
     GeneratePointerChunksRequest,
     GeneratePointerChunksResponse,
     GenerateFullResumeRequest,
     GenerateFullResumeResponse,
-    OptimizedExperience
+    ContactInfo,
+    Experience,
+    Project,
+    Education,
+    ResumeItemContext
 )
 from app.services.pointer_service import (
-    generate_single_pointer,
-    generate_pointer_array,
-    select_relevant_experiences
+    generate_pointer_chunks_with_context,
+    get_user_resume_data,
+    get_resume_item_with_pointers,
+    generate_full_resume_with_single_call
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["resume"])
 
 
-@router.post("/generate-one-pointer", response_model=GenerateOnePointerResponse)
-async def generate_one_pointer(request: GenerateOnePointerRequest):
-    """
-    Generate a single bullet point for an experience.
-    
-    This endpoint is useful for the rescan feature where users want to regenerate
-    a specific bullet point for an experience.
-    """
-    try:
-        logger.info(f"Generating single pointer for experience: {request.experience_id}")
-        
-        # Generate the pointer using the shared helper function
-        pointer = await generate_single_pointer(
-            experience=request.experience_context,
-            job_description=request.job_description
-        )
-        
-        return GenerateOnePointerResponse(pointer=pointer)
-        
-    except Exception as e:
-        logger.error(f"Error in generate_one_pointer: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to generate pointer: {str(e)}")
-
-
 @router.post("/generate-pointer-chunks", response_model=GeneratePointerChunksResponse)
 async def generate_pointer_chunks(request: GeneratePointerChunksRequest):
     """
-    Generate all 3 bullet points for a single experience.
+    Generate multiple bullet points for a resume item using database context.
     
-    This endpoint generates multiple distinct bullet points for the same experience,
-    calling the helper function 3 times to ensure variety.
+    This endpoint generates 3 distinct bullet points that can be selected from
+    by the frontend. The pointers are saved to the database for future reference.
+    
+    Returns verbose JSON with resume item context, generated pointers, and counts.
     """
     try:
-        logger.info(f"Generating pointer chunks for experience: {request.experience_id}")
+        logger.info(f"Generating pointer chunks for resume item: {request.resume_item_id}")
         
-        # Generate 3 pointers using the shared helper function
-        pointers = await generate_pointer_array(
-            experience=request.experience_context,
+        # Get resume item details BEFORE generating
+        resume_item = get_resume_item_with_pointers(request.resume_item_id)
+        if not resume_item:
+            raise HTTPException(status_code=404, detail="Resume item not found")
+        
+        existing_count = len(resume_item.get("existing_pointers", []))
+        
+        # Generate 3 pointers using database context
+        pointers = await generate_pointer_chunks_with_context(
+            resume_item_id=request.resume_item_id,
+            user_id=request.user_id,
             job_description=request.job_description,
             count=3
         )
         
-        return GeneratePointerChunksResponse(pointers=pointers)
+        # NOTE: Not saving to database - just returning for frontend to choose
+        # Frontend will save selected pointers separately
+        
+        # Create verbose response
+        # Note: total_pointers_count = existing because we're NOT saving these to DB
+        return GeneratePointerChunksResponse(
+            resume_item=ResumeItemContext(
+                id=resume_item["id"],
+                title=resume_item.get("title", ""),
+                organization=resume_item.get("organization"),
+                item_type=resume_item.get("item_type", ""),
+                description=resume_item.get("description"),
+                location=resume_item.get("location"),
+                employment_type=resume_item.get("employment_type"),
+                start_date=resume_item.get("start_date"),
+                end_date=resume_item.get("end_date"),
+                is_current=resume_item.get("is_current", False)
+            ),
+            generated_pointers=pointers,
+            existing_pointers_count=existing_count,
+            total_pointers_count=existing_count  # Same as existing since not saving
+        )
         
     except Exception as e:
         logger.error(f"Error in generate_pointer_chunks: {e}")
@@ -73,67 +83,114 @@ async def generate_pointer_chunks(request: GeneratePointerChunksRequest):
 @router.post("/generate-full-resume", response_model=GenerateFullResumeResponse)
 async def generate_full_resume(request: GenerateFullResumeRequest):
     """
-    Full resume optimization with AI selection.
+    Full resume optimization matching frontend structure.
     
-    This endpoint performs a two-step process:
-    1. AI selects and ranks the most relevant experiences
-    2. Generates optimized bullet points for each selected experience
+    Returns:
+    {
+        contactInfo: { name, email, phone },
+        skills: ["skill1", "skill2", ...],
+        experiences: [{ title, company, startDate, endDate, points: [...] }],
+        projects: [{ title, date, points: [...] }],
+        education: [{ degree, institution, year }]
+    }
     """
     try:
-        logger.info("Starting full resume optimization")
+        logger.info("Starting full resume optimization with SINGLE AI call")
         
-        # Step 1: AI Selection - Select relevant experiences
-        logger.info("Step 1: Selecting relevant experiences")
-        selected_experiences = await select_relevant_experiences(
-            resume_data=request.resume_data,
+        # Get user's complete resume data from database
+        user_data = get_user_resume_data(request.user_id)
+        
+        if not user_data or not user_data.get("resume_items"):
+            raise HTTPException(status_code=404, detail="No resume data found for user")
+        
+        user_info = user_data.get("user", {})
+        
+        # Build contact info (static data)
+        contact_info = ContactInfo(
+            name=user_info.get("name", ""),
+            email=user_info.get("email", ""),
+            phone=user_info.get("phone")
+        )
+        
+        # Build skills list (static data)
+        skills = [skill.get("name", "") for skill in user_data.get("skills", [])]
+        
+        # Build education list (static data)
+        education_list = [
+            Education(
+                degree=edu.get("title", ""),
+                institution=edu.get("description", ""),
+                year=edu.get("end_date", "")[:4] if edu.get("end_date") else None
+            )
+            for edu in user_data.get("education", [])
+        ]
+        
+        # SINGLE AI CALL: Generate complete optimized resume
+        logger.info("Making SINGLE AI call to generate complete resume")
+        ai_result = await generate_full_resume_with_single_call(
+            user_data=user_data,
             job_description=request.job_description
         )
         
-        # Step 2: Generate optimized experiences with bullet points
-        logger.info("Step 2: Generating optimized experiences")
-        optimized_experiences = []
+        # Parse AI result and format for frontend
+        experiences = []
+        projects = []
         
-        for exp_data in selected_experiences:
-            try:
-                # Generate 3 pointers for this experience
-                pointers = await generate_pointer_array(
-                    experience=exp_data['data'],
-                    job_description=request.job_description,
-                    count=3
-                )
-                
-                # Create optimized experience object
-                optimized_exp = OptimizedExperience(
-                    id=exp_data['id'],
-                    relevance_score=exp_data['relevance_score'],
-                    selection_reason=exp_data['selection_reason'],
-                    pointers=pointers
-                )
-                
-                optimized_experiences.append(optimized_exp)
-                
-            except Exception as e:
-                logger.error(f"Error generating pointers for experience {exp_data['id']}: {e}")
-                # Continue with other experiences even if one fails
-                continue
+        # Map AI-selected experiences to database items for date information
+        resume_items_map = {item["id"]: item for item in user_data.get("resume_items", [])}
         
-        # Step 3: Generate optimized summary (using same logic as pointers for now)
-        logger.info("Step 3: Generating optimized summary")
-        try:
-            # For now, generate summary as 3 keyword-like strings
-            # In the future, this could be more sophisticated
-            optimized_summary = [
-                "Technical Leadership",
-                "Scalable Architecture", 
-                "Team Collaboration"
-            ]
-        except Exception as e:
-            logger.error(f"Error generating optimized summary: {e}")
-            optimized_summary = []
+        for exp in ai_result.get("selected_experiences", [])[:2]:  # Limit to 2
+            # Try to find matching item in database for dates
+            matching_item = None
+            for item_id, item in resume_items_map.items():
+                if item.get("item_type") == "experience" and item.get("title") == exp.get("title"):
+                    matching_item = item
+                    break
+            
+            # Format dates
+            start_date = ""
+            end_date = ""
+            if matching_item:
+                start_date = matching_item.get('start_date', '')[:7] if matching_item.get('start_date') else ''
+                end_date = matching_item.get('end_date', '')[:7] if matching_item.get('end_date') and not matching_item.get('is_current') else 'Present' if matching_item.get('is_current') else ''
+            
+            experiences.append(Experience(
+                title=exp.get("title", ""),
+                company=exp.get("company", ""),
+                startDate=start_date,
+                endDate=end_date,
+                points=exp.get("points", [])[:4]  # Limit to 4 pointers
+            ))
+        
+        for proj in ai_result.get("selected_projects", [])[:2]:  # Limit to 2
+            # Try to find matching item in database for dates
+            matching_item = None
+            for item_id, item in resume_items_map.items():
+                if item.get("item_type") == "project" and item.get("title") == proj.get("title"):
+                    matching_item = item
+                    break
+            
+            # Format date
+            year = None
+            if matching_item:
+                end_date = matching_item.get('end_date', '')
+                start_date = matching_item.get('start_date', '')
+                year = end_date[:4] if end_date else start_date[:4] if start_date else None
+            
+            projects.append(Project(
+                title=proj.get("title", ""),
+                date=year,
+                points=proj.get("points", [])[:3]  # Limit to 3 pointers
+            ))
+        
+        logger.info(f"Generated {len(experiences)} experiences and {len(projects)} projects with SINGLE AI call")
         
         return GenerateFullResumeResponse(
-            optimized_summary=optimized_summary,
-            optimized_experiences=optimized_experiences
+            contactInfo=contact_info,
+            skills=skills,
+            experiences=experiences,
+            projects=projects,
+            education=education_list
         )
         
     except Exception as e:
