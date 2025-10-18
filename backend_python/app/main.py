@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.config.settings import settings, setup_logging
 from app.database.supabase import get_supabase_client
-from app.routes import health, root, resume, test_ai
+from app.routes import health, root, resume
 
 
 def create_app() -> FastAPI:
@@ -26,7 +26,6 @@ def create_app() -> FastAPI:
     app.include_router(root.router)
     app.include_router(health.router)
     app.include_router(resume.router)
-    app.include_router(test_ai.router)
     
     # Startup event
     @app.on_event("startup")

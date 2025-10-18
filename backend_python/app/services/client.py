@@ -1,14 +1,14 @@
-"""AI and OpenAI agents service for resume optimization."""
+"""AI client service for creating and managing OpenAI agents."""
 
 from agents import set_default_openai_key, Agent, Runner, function_tool, WebSearchTool
 from app.config.settings import settings
 
 
-class AIService:
-    """Service for AI-related operations using OpenAI agents."""
+class AIClient:
+    """Client for AI-related operations using OpenAI agents."""
     
     def __init__(self):
-        """Initialize AI service with OpenAI API key."""
+        """Initialize AI client with OpenAI API key."""
         if not settings.OPENAI_API_KEY:
             raise RuntimeError("Missing OPENAI_API_KEY environment variable")
         set_default_openai_key(settings.OPENAI_API_KEY)
@@ -46,5 +46,5 @@ class AIService:
         return await Runner.run(agent, prompt)
 
 
-# Global AI service instance
-ai_service = AIService()
+# Global AI client instance
+ai_client = AIClient()

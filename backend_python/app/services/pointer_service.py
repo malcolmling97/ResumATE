@@ -2,7 +2,7 @@
 
 import logging
 from typing import List, Dict, Any
-from app.services.ai_service import ai_service
+from app.services.client import ai_client
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +40,14 @@ async def generate_single_pointer(experience: Dict[str, Any], job_description: s
         """
         
         # Create agent for pointer generation
-        agent = ai_service.create_agent(
+        agent = ai_client.create_agent(
             name="pointer-generator",
             model="gpt-4",
             tools=[]
         )
         
         # Run the agent
-        result = await ai_service.run_agent(agent, prompt)
+        result = await ai_client.run_agent(agent, prompt)
         
         # Extract the generated pointer
         pointer = str(result.final_output).strip() if result.final_output else ''
@@ -88,13 +88,13 @@ async def generate_pointer_array(experience: Dict[str, Any], job_description: st
             Return ONLY the bullet point text.
             """
             
-            agent = ai_service.create_agent(
+            agent = ai_client.create_agent(
                 name=f"pointer-generator-{i+1}",
                 model="gpt-4",
                 tools=[]
             )
             
-            result = await ai_service.run_agent(agent, variation_prompt)
+            result = await ai_client.run_agent(agent, variation_prompt)
             pointer = str(result.final_output).strip() if result.final_output else ''
             
             if pointer:
@@ -149,13 +149,13 @@ async def select_relevant_experiences(resume_data: Dict[str, List[Dict[str, Any]
         - etc.
         """
         
-        agent = ai_service.create_agent(
+        agent = ai_client.create_agent(
             name="experience-selector",
             model="gpt-4",
             tools=[]
         )
         
-        result = await ai_service.run_agent(agent, prompt)
+        result = await ai_client.run_agent(agent, prompt)
         output = str(result.final_output) if result.final_output else ''
         
         # Parse the AI response to extract selected experiences
