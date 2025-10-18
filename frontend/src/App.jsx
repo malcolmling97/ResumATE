@@ -3,8 +3,8 @@ import HomePage from './pages/HomePage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import ProfilePage from './pages/ProfilePage'
+import NewProfilePage from './pages/NewProfilePage.jsx'
 import MasterResumePage from './pages/MasterResumePage'
-import GenerateResumePage from './pages/GenerateResumePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import ResumeTailorPage from './pages/ResumeTailorPage'
 
@@ -18,6 +18,11 @@ function App() {
         <Route path='/profile' element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path='/new-profile' element={
+          <ProtectedRoute>
+            <NewProfilePage />
           </ProtectedRoute>
         } />
         <Route path='/master-resume' element={

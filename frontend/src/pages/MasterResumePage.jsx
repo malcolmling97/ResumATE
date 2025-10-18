@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ExperiencesSection from '../components/ExperiencesSection'
 import ProjectsSection from '../components/ProjectsSection'
+import AchievementsSection from '../components/AchievementsSection'
+import TopNavBar from '@/components/TopNavBar'
 
 const MasterResumePage = () => {
     const navigate = useNavigate()
@@ -21,41 +23,43 @@ const MasterResumePage = () => {
     })
 
     return (
-        <div style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '2rem',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-        }}>
+        <>
+            <TopNavBar />
             <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '2rem'
+                maxWidth: '1200px',
+                margin: '0 auto',
+                padding: '2rem',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
             }}>
-                <div>
-                    <h1 style={{ margin: 0, color: '#333', marginBottom: '0.5rem' }}>
-                        Master Resume
-                    </h1>
-                    <p style={{ margin: 0, color: '#666', fontSize: '0.95rem' }}>
-                        Add your experiences and projects here. This is your master data that can be tailored for specific jobs.
-                    </p>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '2rem'
+                }}>
+                    <div>
+                        <h1 style={{ margin: 0, color: '#333', marginBottom: '0.5rem' }}>
+                            Master Resume
+                        </h1>
+                        <p style={{ margin: 0, color: '#666', fontSize: '0.95rem' }}>
+                            Add your experiences and projects here. This is your master data that can be tailored for specific jobs.
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => navigate('/profile')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#f5f5f5',
+                            color: '#333',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem'
+                        }}
+                    >
+                        ← Back to Profile
+                    </button>
                 </div>
-                <button
-                    onClick={() => navigate('/profile')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        backgroundColor: '#f5f5f5',
-                        color: '#333',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.95rem'
-                    }}
-                >
-                    ← Back to Profile
-                </button>
-            </div>
 
             {/* Tabs */}
             <div style={{
@@ -76,12 +80,20 @@ const MasterResumePage = () => {
                 >
                     🚀 Projects
                 </button>
+                <button
+                    onClick={() => setActiveTab('achievements')}
+                    style={tabStyle(activeTab === 'achievements')}
+                >
+                    🏆 Achievements
+                </button>
             </div>
 
-            {/* Content */}
-            {activeTab === 'experiences' && <ExperiencesSection />}
-            {activeTab === 'projects' && <ProjectsSection />}
-        </div>
+                {/* Content */}
+                {activeTab === 'experiences' && <ExperiencesSection />}
+                {activeTab === 'projects' && <ProjectsSection />}
+                {activeTab === 'achievements' && <AchievementsSection />}
+            </div>
+        </>
     )
 }
 

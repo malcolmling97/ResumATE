@@ -6,6 +6,8 @@ import EducationSection from '../components/EducationSection'
 import SkillsSection from '../components/SkillsSection'
 import { useAuthStore } from '../stores/authStore'
 import { authApi } from '../services/api'
+import TopNavBar from '@/components/TopNavBar'
+import { formatDate } from '@/lib/utils'
 
 const ProfilePage = () => {
     const { user, updateUserInStore } = useAuthStore()
@@ -19,18 +21,6 @@ const ProfilePage = () => {
         phone: '',
         about: ''
     })
-
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A'
-        const date = new Date(dateString)
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        })
-    }
 
     const handleEditClick = () => {
         setFormData({
@@ -91,19 +81,21 @@ const ProfilePage = () => {
     }
 
     return (
-        <div style={{
-            maxWidth: '800px',
-            margin: '0 auto',
-            padding: '2rem',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-        }}>
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '2rem'
+        <>
+            <TopNavBar />
+            <div style={{
+                maxWidth: '800px',
+                margin: '0 auto',
+                padding: '2rem',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
             }}>
-                <h1 style={{ margin: 0, color: '#333' }}>Profile</h1>
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '2rem'
+                }}>
+                    <h1 style={{ margin: 0, color: '#333' }}>Profile</h1>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     {!isEditing && (
                         <>
@@ -380,15 +372,16 @@ const ProfilePage = () => {
 
             <SkillsSection />
 
-            <div style={{
-                display: 'flex',
-                gap: '1rem',
-                flexWrap: 'wrap'
-            }}>
-                <LogOutButton />
-                <DeleteUserButton />
+                <div style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                }}>
+                    <LogOutButton />
+                    <DeleteUserButton />
+                </div>
             </div>
-        </div>
+        </>
     )
 }
 

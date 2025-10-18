@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { resumeApi, curatedResumesApi } from '../services/api'
+import TopNavBar from '@/components/TopNavBar'
 
 const GenerateResumePage = () => {
     const navigate = useNavigate()
@@ -159,42 +160,44 @@ const GenerateResumePage = () => {
     }
 
     return (
-        <div style={{
-            maxWidth: '1400px',
-            margin: '0 auto',
-            padding: '2rem',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-        }}>
-            {/* Header */}
+        <>
+            <TopNavBar />
             <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '2rem'
+                maxWidth: '1400px',
+                margin: '0 auto',
+                padding: '2rem',
+                fontFamily: 'system-ui, -apple-system, sans-serif'
             }}>
-                <div>
-                    <h1 style={{ margin: 0, color: '#333', marginBottom: '0.5rem' }}>
-                        Generate Tailored Resume
-                    </h1>
-                    <p style={{ margin: 0, color: '#666', fontSize: '0.95rem' }}>
-                        Paste a job description and we'll generate a customized resume from your master resume
-                    </p>
+                {/* Header */}
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '2rem'
+                }}>
+                    <div>
+                        <h1 style={{ margin: 0, color: '#333', marginBottom: '0.5rem' }}>
+                            Generate Tailored Resume
+                        </h1>
+                        <p style={{ margin: 0, color: '#666', fontSize: '0.95rem' }}>
+                            Paste a job description and we'll generate a customized resume from your master resume
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => navigate('/profile')}
+                        style={{
+                            padding: '0.5rem 1rem',
+                            backgroundColor: '#f5f5f5',
+                            color: '#333',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.95rem'
+                        }}
+                    >
+                        ← Back to Profile
+                    </button>
                 </div>
-                <button
-                    onClick={() => navigate('/profile')}
-                    style={{
-                        padding: '0.5rem 1rem',
-                        backgroundColor: '#f5f5f5',
-                        color: '#333',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.95rem'
-                    }}
-                >
-                    ← Back to Profile
-                </button>
-            </div>
 
             <div style={{
                 display: 'grid',
@@ -877,7 +880,8 @@ const GenerateResumePage = () => {
                     </div>
                 )}
             </div>
-        </div>
+            </div>
+        </>
     )
 }
 

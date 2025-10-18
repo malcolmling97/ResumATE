@@ -146,7 +146,12 @@ const googleCallback = async (req, res) => {
         const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET)
         const expiryDate = new Date(Date.now() + 10800000)
 
-        res.cookie("access_token", token, { httpOnly: true, expires: expiryDate })
+        res.cookie("access_token", token, { 
+            httpOnly: true, 
+            expires: expiryDate,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production'
+        })
 
         // Send HTML page that communicates with parent window
         const { password_hash, ...userWithoutPassword } = user

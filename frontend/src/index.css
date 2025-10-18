@@ -119,3 +119,11 @@
   }
 }
 
+/* Glassmorphism effect for containers */
+.glass-container {
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 18px 0 rgba(0, 0, 0, 0.09);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
