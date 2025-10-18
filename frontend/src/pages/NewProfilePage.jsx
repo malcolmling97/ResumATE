@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDate } from '@/lib/utils'
 import { useAuthStore } from '../stores/authStore'
-import { resumeItemsApi, educationApi, curatedResumesApi, skillsApi } from '../services/api'
+import { resumeItemsApi, educationApi, curatedResumesApi, skillsApi, authApi } from '../services/api'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -24,9 +24,10 @@ import SkillDialog from '@/components/SkillDialog'
 import SkillsBadge from '@/components/SkillsBadge'
 import ExperienceCard from '@/components/ExperienceCard'
 import ExperienceDialog from '@/components/ExperienceDialog'
+import UserProfileDialog from '@/components/UserProfileDialog'
 
 const NewProfilePage = () => {
-  const { user } = useAuthStore()
+  const { user, updateUserInStore } = useAuthStore()
   const [activeTab, setActiveTab] = useState('profile')
   const [workExperiences, setWorkExperiences] = useState([])
   const [projects, setProjects] = useState([])
@@ -51,6 +52,9 @@ const NewProfilePage = () => {
   const [experienceModalOpen, setExperienceModalOpen] = useState(false)
   const [editingExperience, setEditingExperience] = useState(null)
   const [experienceItemType, setExperienceItemType] = useState('experience') // 'experience' or 'project'
+
+  // Modal state for User Profile
+  const [userProfileModalOpen, setUserProfileModalOpen] = useState(false)
 
   const logout = useAuthStore(state => state.logout);
   const navigate = useNavigate();
@@ -370,6 +374,29 @@ const NewProfilePage = () => {
     return grouped
   }
 
+  // User Profile handlers
+  const handleEditProfile = () => {
+    setUserProfileModalOpen(true)
+  }
+
+  const handleSaveProfile = async (formData) => {
+    try {
+      setError(null)
+      const response = await authApi.updateUser(user.id, formData)
+      
+      // Update the user in the store with the response data
+      if (response.data?.user) {
+        updateUserInStore(response.data.user)
+      }
+      
+      setUserProfileModalOpen(false)
+    } catch (error) {
+      console.error('Failed to save profile:', error)
+      setError(`Failed to save profile: ${error.message}`)
+      alert(`Failed to save profile: ${error.message}`)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -387,7 +414,15 @@ const NewProfilePage = () => {
         {/* Sidebar */}
         <div className="w-80 bg-white border-none m-8 mr-0 p-6 flex flex-col gap-6 glass-container rounded-2xl">
         {/* Profile Card */}
-        <Card className="p-6 text-center shadow-sm gap-0">
+        <Card className="p-6 text-center shadow-sm gap-0 relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-2"
+            onClick={handleEditProfile}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
           <div className="flex justify-center mb-4">
             <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-200">
               <img
@@ -397,16 +432,23 @@ const NewProfilePage = () => {
               />
             </div>
           </div>
-          <h3 className="font-bold text-lg mb-1">{user?.name || 'Username'}</h3>
-          <p className="text-sm text-gray-600 mb-1">Product Associate</p>
-          <p className="text-sm text-gray-500 mb-2">@ OrbitOne Technologies</p>
-          <p className="text-xs text-gray-600 mb-1">{user?.email || 'email@example.com'} | +65 8123 4567</p>
+          <h3 className="font-bold text-lg mb-1">{user?.username || 'Username'}</h3>
+          <p className="text-sm text-gray-600 mb-1">{user?.about || 'About'}</p>
+          <p className="text-sm text-gray-500 mb-2">{user?.location || 'Location'}</p>
+          <p className="text-xs text-gray-600 mb-1">{user?.email || 'email@example.com'}</p>
           <div className="mt-4 inline-block">
             <span className="px-4 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
               Job-hunting
             </span>
           </div>
         </Card>
+        
+        <UserProfileDialog
+          open={userProfileModalOpen}
+          onOpenChange={setUserProfileModalOpen}
+          user={user}
+          onSave={handleSaveProfile}
+        />
 
         {/* New Resume Button */}
         <Button 
