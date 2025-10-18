@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import LogOutButton from '../components/LogOutButton'
 import DeleteUserButton from '../components/DeleteUserButton'
+import EducationSection from '../components/EducationSection'
+import SkillsSection from '../components/SkillsSection'
 import { useAuthStore } from '../stores/authStore'
 import { authApi } from '../services/api'
 
@@ -337,6 +339,10 @@ const ProfilePage = () => {
                     </div>
                 )}
             </div>
+
+            <EducationSection />
+
+            <SkillsSection />
 
             <div style={{
                 display: 'flex',
