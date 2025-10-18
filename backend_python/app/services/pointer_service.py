@@ -313,36 +313,40 @@ async def generate_pointer_chunks_with_context(resume_item_id: str, user_id: str
         
         for i in range(count):
             # Add variation to each prompt to get distinct pointers
-            variation_prompt = f"""
-            Generate bullet point #{i+1} of {count} for this experience.
-            Make it different from the previous ones and focus on different aspects.
-            
-            Current Experience Details:
-            Title: {resume_item.get('title', '')}
-            Organization: {resume_item.get('organization', '')}
-            Description: {resume_item.get('description', '')}
-            Location: {resume_item.get('location', '')}
-            Employment Type: {resume_item.get('employment_type', '')}
-            
-            Existing Pointers for this Experience:
-            {existing_pointers_text if existing_pointers_text else 'No existing pointers'}
-            
-            Other Experience Pointers (for reference):
-            {other_pointers_text if other_pointers_text else 'No other experience pointers'}
-            
-            Target Job Description:
-            {job_description}
-            
-            Focus on different achievements, skills, or impacts for this pointer #{i+1}.
-            Make it unique from other pointers and relevant to the job.
-            Return ONLY the bullet point text.
-            """
+            variation_prompt = f"""Write bullet point #{i+1} of {count} for this experience, optimized for the job description.
+
+EXPERIENCE:
+Title: {resume_item.get('title', '')}
+Company: {resume_item.get('organization', '')}
+Description: {resume_item.get('description', '')}
+
+JOB DESCRIPTION:
+{job_description}
+
+EXISTING BULLETS (make yours different):
+{existing_pointers_text if existing_pointers_text else 'None yet'}
+
+IMPORTANT: Tailor this bullet to the job description above. Include numbers where possible.
+
+RULES:
+- Highlight tech mentioned in the job description
+- Include numbers/metrics when possible (users, %, time, services, count)
+- Use specific tech stacks (Python/FastAPI, Docker, AWS, etc.)
+- Make it different from existing bullets above
+- Show concrete impact
+
+GOOD: "Built full-stack API using Python/FastAPI and PostgreSQL serving 10K+ users"
+GOOD: "Reduced deployment time by 35% through Docker containerization of 4 services"
+GOOD: "Collaborated with teams to design AWS infrastructure handling 5K+ requests/day"
+BAD: "Developed applications using various technologies" (vague, no metrics, not job-specific)
+
+Return only the bullet point:"""
             
             agent = ai_client.create_agent(
                 name=f"contextual-pointer-generator-{i+1}",
                 model="gpt-4",
                 tools=[],
-                temperature=0.4  # Lower temp for consistent, factual bullet points
+                temperature=0.5  # Balanced for good bullets with metrics
             )
             
             result = await ai_client.run_agent(agent, variation_prompt)
@@ -410,20 +414,26 @@ YOUR TASK:
 2. Select 1-2 best experiences or projects
 3. Write 3-4 strong bullet points for each
 
-BULLET POINT RULES:
-- Every bullet MUST include numbers (users, %, time saved, services, requests, etc.)
-- Use specific tech stacks (Python/FastAPI, not just "Python")
-- Start with action verbs (Built, Reduced, Optimized, Scaled, Led)
-- Show impact (faster, more reliable, reduced cost, improved performance)
+IMPORTANT: Match bullets to the job description. Highlight relevant tech and include numbers where possible.
+
+BULLET POINT FORMAT:
+[Action verb] + [what you built/did] + using [relevant tech from job] + [metric/number] + [impact]
+
+RULES:
+- Focus on tech mentioned in the job description
+- Include numbers/metrics in MOST bullets (users, %, time, services, count)
+- Use specific tech stacks (Python/FastAPI, Docker, AWS, etc.)
+- Show concrete impact and results
 
 GOOD EXAMPLES:
-✅ "Built API using Python/FastAPI serving 3K+ users with 200ms response time"
+✅ "Built full-stack API using Python/FastAPI and PostgreSQL serving 10K+ users"
 ✅ "Reduced deployment time by 35% through Docker containerization of 4 services"
-✅ "Optimized PostgreSQL queries improving response from 400ms to 150ms"
+✅ "Optimized database queries improving response from 500ms to 150ms"
+✅ "Collaborated with product teams to design AWS infrastructure handling 5K+ requests/day"
 
-BAD (missing metrics):
-❌ "Developed resilient applications emphasizing scalability and performance"
-❌ "Collaborated with teams to design efficient solutions"
+BAD EXAMPLES:
+❌ "Developed applications using various technologies" (vague, no metrics, not job-specific)
+❌ "Improved system performance" (no tech, no numbers)
 
 Return JSON:
 {{
