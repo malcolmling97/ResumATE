@@ -83,16 +83,18 @@ async def generate_pointer_chunks(request: GeneratePointerChunksRequest):
 @router.post("/generate-full-resume", response_model=GenerateFullResumeResponse)
 async def generate_full_resume(request: GenerateFullResumeRequest):
     """
-    Full resume optimization matching frontend structure.
+    Full resume optimization with AI-powered skill selection (SINGLE AI CALL).
     
-    Returns:
-    {
-        contactInfo: { name, email, phone },
-        skills: ["skill1", "skill2", ...],
-        experiences: [{ title, company, startDate, endDate, points: [...] }],
-        projects: [{ title, date, points: [...] }],
-        education: [{ degree, institution, year }]
-    }
+    POST /api/resume/optimize
+    
+    AI analyzes all data and generates a complete optimized resume:
+    - Selects 6-8 most relevant skills matching the job
+    - Selects top 3 most relevant experiences OR projects
+    - Generates 4 tailored bullets per experience
+    - Generates 3 tailored bullets per project
+    
+    Returns frontend-ready JSON matching the expected structure.
+    Speed: ~5-10 seconds (1 AI call)
     """
     try:
         logger.info("Starting full resume optimization with SINGLE AI call")
@@ -112,9 +114,6 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
             phone=user_info.get("phone")
         )
         
-        # Build skills list (static data)
-        skills = [skill.get("name", "") for skill in user_data.get("skills", [])]
-        
         # Build education list (static data)
         education_list = [
             Education(
@@ -125,8 +124,8 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
             for edu in user_data.get("education", [])
         ]
         
-        # SINGLE AI CALL: Generate complete optimized resume
-        logger.info("Making SINGLE AI call to generate complete resume")
+        # SINGLE AI CALL: Generate complete optimized resume (including skill selection)
+        logger.info("Making SINGLE AI call to generate complete resume with skill selection")
         ai_result = await generate_full_resume_with_single_call(
             user_data=user_data,
             job_description=request.job_description
@@ -135,6 +134,13 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
         # Parse AI result and format for frontend
         experiences = []
         projects = []
+        
+        # Use AI-selected skills (fallback to all skills if AI didn't return any)
+        selected_skills = ai_result.get("selected_skills", [])
+        if not selected_skills:
+            # Fallback: use all skills from database
+            selected_skills = [skill.get("name", "") for skill in user_data.get("skills", [])]
+            logger.warning("AI did not return selected skills, using all skills from database")
         
         # Map AI-selected experiences to database items for date information
         resume_items_map = {item["id"]: item for item in user_data.get("resume_items", [])}
@@ -183,11 +189,11 @@ async def generate_full_resume(request: GenerateFullResumeRequest):
                 points=proj.get("points", [])[:3]  # Limit to 3 pointers
             ))
         
-        logger.info(f"Generated {len(experiences)} experiences and {len(projects)} projects with SINGLE AI call")
+        logger.info(f"Generated {len(selected_skills)} skills, {len(experiences)} experiences and {len(projects)} projects with SINGLE AI call")
         
         return GenerateFullResumeResponse(
             contactInfo=contact_info,
-            skills=skills,
+            skills=selected_skills,
             experiences=experiences,
             projects=projects,
             education=education_list

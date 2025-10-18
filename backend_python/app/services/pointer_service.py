@@ -415,14 +415,16 @@ TARGET JOB DESCRIPTION:
 {job_description}
 
 INSTRUCTIONS:
-1. Select the top 3 MOST RELEVANT work experiences OR projects for this job
-2. For each selected experience, generate 4 compelling bullet points
-3. For each selected project, generate 3 compelling bullet points
-4. Each bullet point should be tailored to match the job requirements
-5. Include quantifiable metrics where possible
+1. Select the 6-8 MOST RELEVANT skills from the candidate's skills that match the job
+2. Select the top 3 MOST RELEVANT work experiences OR projects for this job
+3. For each selected experience, generate 4 compelling bullet points
+4. For each selected project, generate 3 compelling bullet points
+5. Each bullet point should be tailored to match the job requirements
+6. Include quantifiable metrics where possible
 
 RETURN ONLY THIS EXACT JSON STRUCTURE (no other text):
 {{
+  "selected_skills": ["JavaScript", "React", "Node.js", "Python", "AWS", "SQL"],
   "selected_experiences": [
     {{
       "title": "experience title",
@@ -460,9 +462,9 @@ Generate the optimized resume now:
             parsed = json.loads(json_match.group())
         else:
             # Fallback if parsing fails
-            parsed = {"selected_experiences": [], "selected_projects": []}
+            parsed = {"selected_skills": [], "selected_experiences": [], "selected_projects": []}
         
-        logger.info(f"Generated resume with {len(parsed.get('selected_experiences', []))} experiences and {len(parsed.get('selected_projects', []))} projects in single AI call")
+        logger.info(f"Generated resume with {len(parsed.get('selected_skills', []))} skills, {len(parsed.get('selected_experiences', []))} experiences and {len(parsed.get('selected_projects', []))} projects in single AI call")
         
         return parsed
         
