@@ -51,5 +51,18 @@ export const authApi = {
       credentials: 'include',
     });
     return handleResponse(response);
+  },
+
+  // Update user profile
+  updateUser: async (userId, updates) => {
+    const response = await fetch(`${API_BASE_URL}/auth/user/${userId}`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    return handleResponse(response);
   }
 };

@@ -77,27 +77,41 @@ export const useAuthStore = create(
         }
       },
 
+      updateUserInStore: (updatedUserData) => {
+        const { user } = get();
+        set({
+          user: { ...user, ...updatedUserData }
+        });
+      },
+
       refreshUserData: async () => {
         try {
           // Use the authApi instead of direct fetch for consistency
           const userData = await authApi.getCurrentUser();
           console.log('Fetched user data:', userData);
 
-          // Also fetch auth methods
-          const authMethodsData = await authApi.getUserAuthMethods();
-          console.log('Fetched auth methods:', authMethodsData);
+          // Also fetch auth methods if the API exists
+          let authMethodsData = null;
+          try {
+            if (authApi.getUserAuthMethods) {
+              authMethodsData = await authApi.getUserAuthMethods();
+              console.log('Fetched auth methods:', authMethodsData);
+            }
+          } catch (authMethodError) {
+            console.log('Auth methods not available or failed:', authMethodError);
+          }
 
           if (userData.data?.user) {
             set({
               user: userData.data.user,
-              authMethods: authMethodsData.authMethods || [],
+              authMethods: authMethodsData?.authMethods || get().authMethods || [],
               isAuthenticated: true,
               isLoading: false
             });
           } else if (userData.user) {
             set({
               user: userData.user,
-              authMethods: authMethodsData.authMethods || [],
+              authMethods: authMethodsData?.authMethods || get().authMethods || [],
               isAuthenticated: true,
               isLoading: false
             });
@@ -118,24 +132,12 @@ export const useAuthStore = create(
               const verifyData = await verifyResponse.json();
               console.log('Verify endpoint data:', verifyData);
               if (verifyData.data?.user) {
-                // Try to get auth methods for fallback too
-                try {
-                  const authMethodsData = await authApi.getUserAuthMethods();
-                  set({
-                    user: verifyData.data.user,
-                    authMethods: authMethodsData.authMethods || [],
-                    isAuthenticated: true,
-                    isLoading: false
-                  });
-                } catch (authError) {
-                  // If auth methods fail, at least set user data
-                  set({
-                    user: verifyData.user,
-                    authMethods: [],
-                    isAuthenticated: true,
-                    isLoading: false
-                  });
-                }
+                set({
+                  user: verifyData.data.user,
+                  authMethods: get().authMethods || [],
+                  isAuthenticated: true,
+                  isLoading: false
+                });
               }
             }
           } catch (fallbackError) {
