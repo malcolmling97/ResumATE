@@ -79,10 +79,17 @@ const SignInPage = () => {
 
 
   return (
-    <>
-        <div>SignInPage</div>
-        <GoogleButton onClick={loginWithGooglePopup} disabled={isSubmitting} />
-    </>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-sky-200 via-slate-100 to-violet-100">
+      <div className="bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center w-full max-w-sm">
+        <h1 className="text-4xl font-serif mb-4">resum<span className="text-sky-700">ate</span></h1>
+        <p className="mb-8 text-gray-500 text-center text-lg">Sign in to continue to <span className="text-sky-700">Resumate</span>.</p>
+        <GoogleButton
+          onClick={loginWithGooglePopup}
+          disabled={isSubmitting}
+          className="w-full"
+        />
+      </div>
+    </div>
   )
 }
 

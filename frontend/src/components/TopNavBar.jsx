@@ -8,10 +8,10 @@ const TopNavBar = () => {
   const navigate = useNavigate()
 
   return (
-    <header className="bg-white sticky top-0 z-50 flex h-14 shrink-0 items-center border-b px-4">
+    <header className="bg-white sticky top-0 z-50 flex h-14 shrink-0 items-center border-b px-6">
       <div className="flex w-full items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold">Resumate</h1>
+          <h1 className="text-2xl font-serif">resum<span className="text-sky-700">ate</span></h1>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" onClick={() => navigate('/generate-resume')}>

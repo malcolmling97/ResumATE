@@ -21,7 +21,7 @@ const CreateNewTailoredResumeInset = ({ onGenerate, onLoadSample, isGenerating, 
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-var(--header-height))] px-4 w-full">
+    <div className="flex flex-col items-center justify-center h-full min-h-[calc(100vh-var(--header-height))] px-4 w-full bg-sky-background">
       <div className="text-center space-y-4 max-w-2xl w-full">
         {/* Icon */}
         <div className="flex justify-center">
@@ -37,7 +37,7 @@ const CreateNewTailoredResumeInset = ({ onGenerate, onLoadSample, isGenerating, 
             Tailor your resume for your dream job
           </h1>
           <p className="text-sm text-muted-foreground">
-            Paste a job description and we'll generate a customized resume from your master resume
+            Convert your experience into a professional resume tailored to your job applications
           </p>
         </div>
 
