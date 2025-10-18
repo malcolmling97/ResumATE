@@ -178,8 +178,9 @@ async def generate_pointer_variations(pointer_id: str, resume_item_id: str, user
             
             agent = ai_client.create_agent(
                 name=f"pointer-variation-{i+1}",
-                model="gpt-4",
-                tools=[]
+                model="gpt-4o",
+                tools=[],
+                temperature=0.4
             )
             
             result = await ai_client.run_agent(agent, prompt)
@@ -259,8 +260,9 @@ async def generate_single_pointer_with_context(resume_item_id: str, user_id: str
         # Create agent for pointer generation
         agent = ai_client.create_agent(
             name="contextual-pointer-generator",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.4
         )
         
         # Run the agent
@@ -311,35 +313,40 @@ async def generate_pointer_chunks_with_context(resume_item_id: str, user_id: str
         
         for i in range(count):
             # Add variation to each prompt to get distinct pointers
-            variation_prompt = f"""
-            Generate bullet point #{i+1} of {count} for this experience.
-            Make it different from the previous ones and focus on different aspects.
-            
-            Current Experience Details:
-            Title: {resume_item.get('title', '')}
-            Organization: {resume_item.get('organization', '')}
-            Description: {resume_item.get('description', '')}
-            Location: {resume_item.get('location', '')}
-            Employment Type: {resume_item.get('employment_type', '')}
-            
-            Existing Pointers for this Experience:
-            {existing_pointers_text if existing_pointers_text else 'No existing pointers'}
-            
-            Other Experience Pointers (for reference):
-            {other_pointers_text if other_pointers_text else 'No other experience pointers'}
-            
-            Target Job Description:
-            {job_description}
-            
-            Focus on different achievements, skills, or impacts for this pointer #{i+1}.
-            Make it unique from other pointers and relevant to the job.
-            Return ONLY the bullet point text.
-            """
+            variation_prompt = f"""Write bullet point #{i+1} of {count} for this experience, optimized for the job description.
+
+EXPERIENCE:
+Title: {resume_item.get('title', '')}
+Company: {resume_item.get('organization', '')}
+Description: {resume_item.get('description', '')}
+
+JOB DESCRIPTION:
+{job_description}
+
+EXISTING BULLETS (make yours different):
+{existing_pointers_text if existing_pointers_text else 'None yet'}
+
+IMPORTANT: Tailor this bullet to the job description above. Include numbers where possible.
+
+RULES:
+- Highlight tech mentioned in the job description
+- Include numbers/metrics when possible (users, %, time, services, count)
+- Use specific tech stacks (Python/FastAPI, Docker, AWS, etc.)
+- Make it different from existing bullets above
+- Show concrete impact
+
+GOOD: "Built full-stack API using Python/FastAPI and PostgreSQL serving 10K+ users"
+GOOD: "Reduced deployment time by 35% through Docker containerization of 4 services"
+GOOD: "Collaborated with teams to design AWS infrastructure handling 5K+ requests/day"
+BAD: "Developed applications using various technologies" (vague, no metrics, not job-specific)
+
+Return only the bullet point:"""
             
             agent = ai_client.create_agent(
                 name=f"contextual-pointer-generator-{i+1}",
                 model="gpt-4",
-                tools=[]
+                tools=[],
+                temperature=0.5  # Balanced for good bullets with metrics
             )
             
             result = await ai_client.run_agent(agent, variation_prompt)
@@ -372,7 +379,6 @@ async def generate_full_resume_with_single_call(user_data: Dict[str, Any], job_d
         user_info = user_data.get("user", {})
         resume_items = user_data.get("resume_items", [])
         skills = user_data.get("skills", [])
-        education = user_data.get("education", [])
         
         # Separate experiences and projects
         experiences = [item for item in resume_items if item.get("item_type") == "experience"]
@@ -380,77 +386,77 @@ async def generate_full_resume_with_single_call(user_data: Dict[str, Any], job_d
         
         # Build context strings
         experiences_text = "\n".join([
-            f"- {item.get('title', '')} at {item.get('organization', '')}: {item.get('description', '')}"
+            f"- Title: {item.get('title', '')}, Company: {item.get('organization', '')}, Description: {item.get('description', '')}"
             for item in experiences
         ])
         
         projects_text = "\n".join([
-            f"- {item.get('title', '')}: {item.get('description', '')}"
+            f"- Title: {item.get('title', '')}, Description: {item.get('description', '')}"
             for item in projects
         ])
         
-        skills_text = ", ".join([skill.get("name", "") for skill in skills])
+        skills_list = [skill.get("name", "") for skill in skills]
+        skills_text = ", ".join(skills_list)
         
-        # Create the prompt with expected JSON structure
-        prompt = f"""
-You are a resume optimization expert. Generate a complete optimized resume for this candidate based on the job description.
+        # ULTRA-SIMPLE PROMPT - Less is more
+        prompt = f"""Create a resume optimized for this job. Use the candidate's actual data.
 
-CANDIDATE DATA:
-Name: {user_info.get('name', '')}
-Email: {user_info.get('email', '')}
-Phone: {user_info.get('phone', '')}
-
-Skills: {skills_text}
-
-Work Experiences:
-{experiences_text}
-
-Projects:
-{projects_text}
-
-Education:
-{", ".join([edu.get("title", "") for edu in education])}
-
-TARGET JOB DESCRIPTION:
+JOB:
 {job_description}
 
-INSTRUCTIONS:
-1. Select the 6-8 MOST RELEVANT skills from the candidate's skills that match the job
-2. Select the top 3 MOST RELEVANT work experiences OR projects for this job
-3. For each selected experience, generate 4 compelling bullet points
-4. For each selected project, generate 3 compelling bullet points
-5. Each bullet point should be tailored to match the job requirements
-6. Include quantifiable metrics where possible
+CANDIDATE:
+Skills: {skills_text}
+Experiences: {experiences_text}
+Projects: {projects_text}
 
-RETURN ONLY THIS EXACT JSON STRUCTURE (no other text):
+YOUR TASK:
+1. Pick 4-8 relevant skills from candidate's list (don't invent new ones)
+2. Select 1-2 best experiences or projects
+3. Write 3-4 strong bullet points for each
+
+IMPORTANT: Match bullets to the job description. Highlight relevant tech and include numbers where possible.
+
+BULLET POINT FORMAT:
+[Action verb] + [what you built/did] + using [relevant tech from job] + [metric/number] + [impact]
+
+RULES:
+- Focus on tech mentioned in the job description
+- Include numbers/metrics in MOST bullets (users, %, time, services, count)
+- Use specific tech stacks (Python/FastAPI, Docker, AWS, etc.)
+- Show concrete impact and results
+
+GOOD EXAMPLES:
+✅ "Built full-stack API using Python/FastAPI and PostgreSQL serving 10K+ users"
+✅ "Reduced deployment time by 35% through Docker containerization of 4 services"
+✅ "Optimized database queries improving response from 500ms to 150ms"
+✅ "Collaborated with product teams to design AWS infrastructure handling 5K+ requests/day"
+
+BAD EXAMPLES:
+❌ "Developed applications using various technologies" (vague, no metrics, not job-specific)
+❌ "Improved system performance" (no tech, no numbers)
+
+Return JSON:
 {{
-  "selected_skills": ["JavaScript", "React", "Node.js", "Python", "AWS", "SQL"],
+  "selected_skills": ["Python", "Docker", ...],
   "selected_experiences": [
-    {{
-      "title": "experience title",
-      "company": "company name",
-      "points": ["bullet 1", "bullet 2", "bullet 3", "bullet 4"]
-    }}
+    {{"title": "...", "company": "...", "points": ["...", "...", "..."]}}
   ],
   "selected_projects": [
-    {{
-      "title": "project title",
-      "points": ["bullet 1", "bullet 2", "bullet 3"]
-    }}
+    {{"title": "...", "points": ["...", "...", "..."]}}
   ]
-}}
-
-Generate the optimized resume now:
-"""
+}}"""
         
         agent = ai_client.create_agent(
-            name="full-resume-generator",
-            model="gpt-4",
-            tools=[]
+            name="resume-optimizer",
+            model="gpt-4",  # Using GPT-4 for better quality
+            tools=[],
+            temperature=0.5  # Balanced - enough creativity for good bullets, still grounded
         )
         
         result = await ai_client.run_agent(agent, prompt)
         output = str(result.final_output) if result.final_output else '{}'
+        
+        logger.info(f"AI Response: {output[:200]}...")
         
         # Parse the JSON response
         import json
@@ -460,17 +466,51 @@ Generate the optimized resume now:
         json_match = re.search(r'\{.*\}', output, re.DOTALL)
         if json_match:
             parsed = json.loads(json_match.group())
+            
+            # STRIP any extra fields the AI might have added (education, contactInfo, etc.)
+            allowed_fields = {"selected_skills", "selected_experiences", "selected_projects"}
+            extra_fields = set(parsed.keys()) - allowed_fields
+            if extra_fields:
+                logger.warning(f"AI returned extra fields (removing): {extra_fields}")
+                for field in extra_fields:
+                    del parsed[field]
+            
+            # STRICT validation: selected_skills must exist in candidate's skills (case-insensitive)
+            if "selected_skills" in parsed:
+                ai_selected_count = len(parsed["selected_skills"])
+                skills_lower_map = {s.lower(): s for s in skills_list}
+                valid_skills = []
+                
+                logger.info(f"Validating skills. Database has: {skills_list}")
+                logger.info(f"AI selected: {parsed['selected_skills']}")
+                
+                for ai_skill in parsed["selected_skills"]:
+                    # Try exact match first
+                    if ai_skill in skills_list:
+                        valid_skills.append(ai_skill)
+                        logger.info(f"  ✓ '{ai_skill}' - exact match")
+                    # Try case-insensitive match
+                    elif ai_skill.lower() in skills_lower_map:
+                        # Use the actual skill name from DB
+                        db_skill = skills_lower_map[ai_skill.lower()]
+                        valid_skills.append(db_skill)
+                        logger.warning(f"  ~ '{ai_skill}' case mismatch - using DB version '{db_skill}'")
+                    else:
+                        logger.error(f"  ✗ '{ai_skill}' HALLUCINATED - NOT in database [{', '.join(skills_list)}]. REMOVING.")
+                
+                parsed["selected_skills"] = valid_skills
+                logger.info(f"Validation complete: {len(valid_skills)}/{ai_selected_count} skills kept, {ai_selected_count - len(valid_skills)} removed")
         else:
-            # Fallback if parsing fails
+            logger.error("Failed to parse JSON from AI response")
             parsed = {"selected_skills": [], "selected_experiences": [], "selected_projects": []}
         
-        logger.info(f"Generated resume with {len(parsed.get('selected_skills', []))} skills, {len(parsed.get('selected_experiences', []))} experiences and {len(parsed.get('selected_projects', []))} projects in single AI call")
+        logger.info(f"Generated resume with {len(parsed.get('selected_skills', []))} skills, {len(parsed.get('selected_experiences', []))} experiences and {len(parsed.get('selected_projects', []))} projects")
         
         return parsed
         
     except Exception as e:
         logger.error(f"Error generating full resume with single call: {e}")
-        return {"selected_experiences": [], "selected_projects": []}
+        return {"selected_skills": [], "selected_experiences": [], "selected_projects": []}
 
 
 async def select_best_pointers(all_pointers: List[str], job_description: str, limit: int = 3) -> List[str]:
@@ -512,8 +552,9 @@ async def select_best_pointers(all_pointers: List[str], job_description: str, li
         
         agent = ai_client.create_agent(
             name="pointer-selector",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.3
         )
         
         result = await ai_client.run_agent(agent, prompt)
@@ -585,8 +626,9 @@ async def select_relevant_experiences_with_context(user_data: Dict[str, Any], jo
         
         agent = ai_client.create_agent(
             name="experience-selector",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.3
         )
         
         result = await ai_client.run_agent(agent, prompt)
@@ -660,8 +702,9 @@ async def generate_summary_pointers(user_data: Dict[str, Any], job_description: 
         
         agent = ai_client.create_agent(
             name="summary-generator",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.4
         )
         
         result = await ai_client.run_agent(agent, prompt)
@@ -721,8 +764,9 @@ async def generate_single_pointer(experience: Dict[str, Any], job_description: s
         # Create agent for pointer generation
         agent = ai_client.create_agent(
             name="pointer-generator",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.4
         )
         
         # Run the agent
@@ -769,8 +813,9 @@ async def generate_pointer_array(experience: Dict[str, Any], job_description: st
             
             agent = ai_client.create_agent(
                 name=f"pointer-generator-{i+1}",
-                model="gpt-4",
-                tools=[]
+                model="gpt-4o",
+                tools=[],
+                temperature=0.4
             )
             
             result = await ai_client.run_agent(agent, variation_prompt)
@@ -830,8 +875,9 @@ async def select_relevant_experiences(resume_data: Dict[str, List[Dict[str, Any]
         
         agent = ai_client.create_agent(
             name="experience-selector",
-            model="gpt-4",
-            tools=[]
+            model="gpt-4o",
+            tools=[],
+            temperature=0.3
         )
         
         result = await ai_client.run_agent(agent, prompt)

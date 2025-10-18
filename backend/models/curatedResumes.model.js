@@ -159,6 +159,14 @@ const createCuratedResume = async (userId, resumeData) => {
             if (typeof dateStr === 'string' && (dateStr.toLowerCase().includes('start') || dateStr.toLowerCase().includes('end') || dateStr.toLowerCase() === 'present')) {
               return null
             }
+            // Handle year-only format (YYYY) by converting to YYYY-01-01
+            if (typeof dateStr === 'string' && /^\d{4}$/.test(dateStr)) {
+              return `${dateStr}-01-01`
+            }
+            // Handle YYYY-MM format from FastAPI by converting to YYYY-MM-01
+            if (typeof dateStr === 'string' && /^\d{4}-\d{2}$/.test(dateStr)) {
+              return `${dateStr}-01`
+            }
             // Try to parse as date
             const date = new Date(dateStr)
             return !isNaN(date.getTime()) ? dateStr : null
@@ -258,6 +266,14 @@ const createCuratedResume = async (userId, resumeData) => {
             // If it's a placeholder, return null
             if (typeof dateStr === 'string' && (dateStr.toLowerCase().includes('date') || dateStr.toLowerCase() === 'present')) {
               return null
+            }
+            // Handle year-only format (YYYY) by converting to YYYY-01-01
+            if (typeof dateStr === 'string' && /^\d{4}$/.test(dateStr)) {
+              return `${dateStr}-01-01`
+            }
+            // Handle YYYY-MM format from FastAPI by converting to YYYY-MM-01
+            if (typeof dateStr === 'string' && /^\d{4}-\d{2}$/.test(dateStr)) {
+              return `${dateStr}-01`
             }
             // Try to parse as date
             const date = new Date(dateStr)

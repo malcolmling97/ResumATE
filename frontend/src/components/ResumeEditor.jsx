@@ -51,7 +51,20 @@ const TailoredResumeEditor = ({
       return dateString
     }
     
-    // Try to parse and format the date
+    // Check if it's a date that was stored as year-only (YYYY-01-01)
+    // We want to display just the year, not 01/01/YYYY
+    if (/^\d{4}-01-01/.test(dateString)) {
+      return dateString.substring(0, 4) // Return just the year
+    }
+    
+    // Check if it's a date that was stored as month/year (YYYY-MM-01)
+    // We want to display as MM/YYYY, not 01/MM/YYYY
+    if (/^\d{4}-\d{2}-01/.test(dateString)) {
+      const [year, month] = dateString.split('-')
+      return `${month}/${year}`
+    }
+    
+    // Try to parse and format the date as DD/MM/YYYY
     try {
       const date = new Date(dateValue)
       if (!isNaN(date.getTime())) {
@@ -268,7 +281,7 @@ const TailoredResumeEditor = ({
 
                   <ul className="space-y-1.5 ml-4">
                     {exp.bullets?.map((bullet, bIdx) => (
-                      <li key={bIdx} className="text-sm text-muted-foreground list-disc">
+                      <li key={bIdx} className="text-sm text-muted-foreground list-disc group/bullet relative">
                         {editingField === `exp-bullet-${idx}-${bIdx}` ? (
                           <Textarea
                             value={bullet}
@@ -282,12 +295,24 @@ const TailoredResumeEditor = ({
                             className="min-h-16 text-sm mt-1"
                           />
                         ) : (
-                          <span
-                            className="cursor-pointer hover:text-primary"
-                            onClick={() => setEditingField(`exp-bullet-${idx}-${bIdx}`)}
-                          >
-                            {bullet}
-                          </span>
+                          <div className="flex items-start gap-2">
+                            <span
+                              className="cursor-pointer hover:text-primary flex-1"
+                              onClick={() => setEditingField(`exp-bullet-${idx}-${bIdx}`)}
+                            >
+                              {bullet}
+                            </span>
+                            <button
+                              onClick={() => {
+                                const newBullets = exp.bullets.filter((_, i) => i !== bIdx)
+                                onItemSave?.(exp.id, newBullets)
+                              }}
+                              className="opacity-0 group-hover/bullet:opacity-100 p-1 hover:bg-destructive/10 text-destructive rounded transition-opacity"
+                              title="Delete bullet point"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         )}
                       </li>
                     ))}
@@ -347,7 +372,7 @@ const TailoredResumeEditor = ({
 
                   <ul className="space-y-1.5 ml-4">
                     {proj.bullets?.map((bullet, bIdx) => (
-                      <li key={bIdx} className="text-sm text-muted-foreground list-disc">
+                      <li key={bIdx} className="text-sm text-muted-foreground list-disc group/bullet relative">
                         {editingField === `proj-bullet-${idx}-${bIdx}` ? (
                           <Textarea
                             value={bullet}
@@ -361,12 +386,24 @@ const TailoredResumeEditor = ({
                             className="min-h-16 text-sm mt-1"
                           />
                         ) : (
-                          <span
-                            className="cursor-pointer hover:text-primary"
-                            onClick={() => setEditingField(`proj-bullet-${idx}-${bIdx}`)}
-                          >
-                            {bullet}
-                          </span>
+                          <div className="flex items-start gap-2">
+                            <span
+                              className="cursor-pointer hover:text-primary flex-1"
+                              onClick={() => setEditingField(`proj-bullet-${idx}-${bIdx}`)}
+                            >
+                              {bullet}
+                            </span>
+                            <button
+                              onClick={() => {
+                                const newBullets = proj.bullets.filter((_, i) => i !== bIdx)
+                                onItemSave?.(proj.id, newBullets)
+                              }}
+                              className="opacity-0 group-hover/bullet:opacity-100 p-1 hover:bg-destructive/10 text-destructive rounded transition-opacity"
+                              title="Delete bullet point"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
                         )}
                       </li>
                     ))}
