@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request
 router = APIRouter(prefix="/health", tags=["health"])
 
 
-@router.get("/health")
+@router.get("/")
 async def health_check(request: Request):
     """Basic health check that also validates Supabase config presence."""
     supabase = getattr(request.app.state, "supabase", None)

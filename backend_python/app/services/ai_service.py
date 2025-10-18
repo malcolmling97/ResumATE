@@ -1,4 +1,4 @@
-"""AI and OpenAI agents service."""
+"""AI and OpenAI agents service for resume optimization."""
 
 from agents import set_default_openai_key, Agent, Runner, function_tool, WebSearchTool
 from app.config.settings import settings
@@ -33,7 +33,7 @@ class AIService:
             tools=tools
         )
     
-    def run_agent(self, agent: Agent, prompt: str) -> dict:
+    async def run_agent(self, agent: Agent, prompt: str) -> dict:
         """Run an agent with a given prompt.
         
         Args:
@@ -43,7 +43,7 @@ class AIService:
         Returns:
             Agent execution result
         """
-        return Runner.run(agent, prompt)
+        return await Runner.run(agent, prompt)
 
 
 # Global AI service instance
