@@ -6,7 +6,7 @@ import ProfilePage from './pages/ProfilePage'
 import MasterResumePage from './pages/MasterResumePage'
 import GenerateResumePage from './pages/GenerateResumePage'
 import ProtectedRoute from './components/ProtectedRoute'
-import HomePageTwo from './pages/HomePageTwo'
+import HomePageTwo from './pages/ResumeTailorPage'
 
 function App() {
   return (

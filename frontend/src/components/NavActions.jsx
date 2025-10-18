@@ -1,7 +1,6 @@
 import { Plus } from "lucide-react"
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuItem,

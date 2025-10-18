@@ -2,9 +2,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Copy, Pencil, RotateCw, User } from "lucide-react"
+import { Copy, Pencil, RotateCw, User, PanelLeft } from "lucide-react"
 import { mockResumes } from "../sample"
-import SidebarLogo from "@/components/SidebarLogo"
 import NavActions from "@/components/NavActions"
 import NavResumeItems from "@/components/NavResumeItems"
 import {
@@ -17,13 +16,15 @@ import {
   SidebarMenuButton,
   SidebarProvider,
   SidebarInset,
+  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
+import TopNavBar from "@/components/TopNavBar"
 
-const HomePageTwoContent = () => {
+const ResumeTailorContent = () => {
   const [selectedResumeId, setSelectedResumeId] = useState("3")
   const [editingItem, setEditingItem] = useState(null)
-  const { open, setOpen } = useSidebar()
+  const { open, setOpen, toggleSidebar } = useSidebar()
   const selectedResume = mockResumes.find((r) => r.id === selectedResumeId)
 
   const handleCopy = async (bullets) => {
@@ -58,18 +59,16 @@ const HomePageTwoContent = () => {
   return (
     <>
       <Sidebar 
+        className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
         collapsible="icon"
       >
-        <SidebarHeader 
-          onClick={handleSidebarClick}
-          className={open ? "cursor-auto [&_button]:cursor-pointer" : "cursor-e-resize [&_button]:cursor-pointer"}
-        >
-          <SidebarLogo isHovered={open}/>
-        </SidebarHeader>
-        
         <SidebarContent
           onClick={handleSidebarClick}
-          className={open ? "cursor-auto [&_button]:cursor-pointer [&_a]:cursor-pointer" : "cursor-e-resize [&_button]:cursor-pointer [&_a]:cursor-pointer"}
+          className={
+            open
+              ? "py-2 cursor-auto [&_button]:cursor-pointer [&_a]:cursor-pointer"
+              : "py-2 cursor-e-resize [&_button]:cursor-pointer [&_a]:cursor-pointer"
+          }
         >
           <NavActions onNewResume={handleNewResume} />
           <NavResumeItems 
@@ -85,9 +84,9 @@ const HomePageTwoContent = () => {
         >
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton tooltip="Profile">
-                <User className="h-4 w-4" />
-                <span>Profile</span>
+              <SidebarMenuButton onClick={toggleSidebar} tooltip="Toggle Sidebar">
+                <PanelLeft className="h-4 w-4" />
+                <span className=''>Collapse Sidebar</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -97,7 +96,6 @@ const HomePageTwoContent = () => {
       <SidebarInset>
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-5xl mx-auto p-8">
-
           {selectedResume && (
             <div className="space-y-8">
               {/* Job Title */}
@@ -240,12 +238,17 @@ const HomePageTwoContent = () => {
   )
 }
 
-const HomePageTwo = () => {
+const ResumeTailorPage = () => {
   return (
-    <SidebarProvider>
-      <HomePageTwoContent />
-    </SidebarProvider>
+    <div className="[--header-height:theme(spacing.14)] h-screen">
+      <SidebarProvider className="flex flex-col h-full">
+        <TopNavBar className="bg-background sticky top-0 z-50 flex w-full items-center border-b"/>
+        <div className="flex flex-1 overflow-hidden">
+          <ResumeTailorContent />
+        </div>
+      </SidebarProvider>
+    </div>
   )
 }
 
-export default HomePageTwo
+export default ResumeTailorPage
