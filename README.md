@@ -37,7 +37,9 @@ To solve this, ResumATE uses AI to intelligently select and reorganize experienc
 
 ## 📸 Screenshots / Demo
 
-🎥 [Watch Demo](https://github.com/malcolmling97/ResumATE/blob/main/docs/ResumATE.mp4)
+🎥 [Video can be downloaded from here](https://github.com/malcolmling97/ResumATE/blob/main/docs/ResumATE.mp4)
+
+<video src="https://raw.githubusercontent.com/malcolmling97/ResumATE/main/docs/ResumATE.mp4" controls width="600"></video>
 
 ---
 
